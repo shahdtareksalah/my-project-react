@@ -1,30 +1,72 @@
 {
   "expo": {
     "name": "SmartAid",
-    "slug": "SmartAid",
+    "slug": "smartaid",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
-    "newArchEnabled": true,
+    "newArchEnabled": false,
+
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
+
+    "plugins": [
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Allow SmartAid to access your camera for AI-powered assistance.",
+          "microphonePermission": "Allow SmartAid to access your microphone for video."
+        }
+      ],
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "Allow SmartAid to access your location for safety features."
+        }
+      ],
+      [
+        "expo-av",
+        {
+          "microphonePermission": "Allow SmartAid to access your microphone for voice commands."
+        }
+      ],
+      "expo-notifications",
+      "expo-font"
+    ],
+
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.anonymous.smartaid",
+      "infoPlist": {
+        "NSCameraUsageDescription": "Allow SmartAid to access your camera for AI-powered assistance.",
+        "NSMicrophoneUsageDescription": "Allow SmartAid to access your microphone for voice and video features.",
+        "NSLocationWhenInUseUsageDescription": "Allow SmartAid to access your location for safety features."
+      }
     },
+
     "android": {
+      "permissions": ["RECORD_AUDIO"],  
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
       "edgeToEdgeEnabled": true,
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "package": "com.anonymous.smartaid"
     },
+
     "web": {
       "favicon": "./assets/favicon.png"
+    },
+
+    "extra": {
+      "eas": {
+        "projectId": "6ff7e8fe-7c9b-4cc2-a467-ccef35cbd19b"
+      }
     }
   }
 }

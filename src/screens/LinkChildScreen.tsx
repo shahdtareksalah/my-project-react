@@ -62,12 +62,23 @@ export function LinkChildScreen({ navigation }: any) {
         return;
       }
 
+      console.log('[LinkChild] Request failed', {
+        status: response.status,
+        url: '/locations/link-child/',
+        requestBody: { dependent_email: trimmedEmail },
+        responseData: data,
+      });
       const errorMessage = getApiErrorMessage(
         data,
         'Unable to link child. Please verify the email and try again.'
       );
       Alert.alert('Link Failed', errorMessage);
     } catch (error: any) {
+      console.log('[LinkChild] Network/Unexpected error', {
+        message: error?.message,
+        name: error?.name,
+        stack: error?.stack,
+      });
       Alert.alert('Network Error', error?.message || 'Unable to connect to the server.');
     } finally {
       setLoading(false);

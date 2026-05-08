@@ -3,7 +3,7 @@ import * as TaskManager from 'expo-task-manager';
 import * as Location from 'expo-location';
 import * as Notifications from 'expo-notifications';
 import { triggerEmergencyAlert, type EmergencyTrigger } from '../services/alertService';
-import { apiDelete, apiGet, apiPost } from '../api/client';
+import { apiDelete, apiGet, apiPost, API_BASE_URL, getStoredTokens } from '../api/client';
 import {
   loadEmergencyContactPhone,
   loadSafeZone,
@@ -11,19 +11,30 @@ import {
   saveSafeZone,
   type SafeZone,
 } from '../services/safeZoneService';
+import {
+  normalizeChildLocation,
+  normalizeLinkedChildren,
+  normalizeSafeZones,
+  type Coordinate,
+  type NormalizedLinkedChild,
+  type NormalizedSafeZone,
+} from '../utils/locationNormalizers';
 
 const LOCATION_TASK_NAME = 'smartaid-background-location';
 
 type SafetyContextValue = {
   safeZone: SafeZone | null;
-  safeZones: Array<Record<string, unknown>>;
-  childLocation: Record<string, unknown> | null;
+  safeZones: NormalizedSafeZone[];
+  linkedChildren: NormalizedLinkedChild[];
+  childLocation: Coordinate | null;
   emergencyHistory: Array<Record<string, unknown>>;
   emergencyPhone: string;
   setEmergencyPhone: (phone: string) => Promise<void>;
   setSafeZoneFromCurrentLocation: (radiusMeters: number, name: string) => Promise<void>;
-  fetchSafeZones: () => Promise<void>;
+  fetchSafeZones: (childId?: string) => Promise<void>;
+  fetchLinkedChildren: () => Promise<void>;
   deleteSafeZone: (zoneId: string) => Promise<void>;
+  updateSafeZone: (zoneId: string, payload: Record<string, unknown>) => Promise<void>;
   linkChild: (childIdentifier: string) => Promise<void>;
   fetchChildLocation: (childId: string) => Promise<void>;
   updateChildLocation: () => Promise<void>;
@@ -93,8 +104,9 @@ async function ensureBackgroundUpdatesStarted() {
 
 export function SafetyProvider({ children }: { children: React.ReactNode }) {
   const [safeZone, setSafeZone] = useState<SafeZone | null>(null);
-  const [safeZones, setSafeZones] = useState<Array<Record<string, unknown>>>([]);
-  const [childLocation, setChildLocation] = useState<Record<string, unknown> | null>(null);
+  const [safeZones, setSafeZones] = useState<NormalizedSafeZone[]>([]);
+  const [linkedChildren, setLinkedChildren] = useState<NormalizedLinkedChild[]>([]);
+  const [childLocation, setChildLocation] = useState<Coordinate | null>(null);
   const [emergencyHistory, setEmergencyHistory] = useState<Array<Record<string, unknown>>>([]);
   const [emergencyPhone, setEmergencyPhoneState] = useState('');
 
@@ -119,15 +131,24 @@ export function SafetyProvider({ children }: { children: React.ReactNode }) {
         setEmergencyPhoneState(storedPhone);
         emergencyPhoneSnapshot = storedPhone;
       }
-      await Promise.allSettled([fetchSafeZonesInternal(), fetchEmergencyHistoryInternal()]);
+      await Promise.allSettled([
+        fetchSafeZonesInternal(),
+        fetchEmergencyHistoryInternal(),
+        fetchLinkedChildrenInternal(),
+      ]);
     })();
   }, []);
 
-  const fetchSafeZonesInternal = async () => {
-    const { response, data } = await apiGet('/locations/safezone/');
+  const fetchSafeZonesInternal = async (childId?: string) => {
+    const url = childId
+      ? `/locations/safezone/?child_id=${childId}`
+      : '/locations/safezone/';
+    const { response, data } = await apiGet(url);
     if (response.ok && Array.isArray(data)) {
-      setSafeZones(data as Array<Record<string, unknown>>);
+      setSafeZones(normalizeSafeZones(data));
+      return;
     }
+    setSafeZones([]);
   };
 
   const fetchEmergencyHistoryInternal = async () => {
@@ -135,6 +156,47 @@ export function SafetyProvider({ children }: { children: React.ReactNode }) {
     if (response.ok && Array.isArray(data)) {
       setEmergencyHistory(data as Array<Record<string, unknown>>);
     }
+  };
+
+  const fetchLinkedChildrenInternal = async () => {
+    const { response, data } = await apiGet('/locations/linked-children/');
+    if (!response.ok || !Array.isArray(data)) {
+      setLinkedChildren([]);
+      return;
+    }
+
+    const normalized = normalizeLinkedChildren(data);
+
+    // Set children immediately so the UI isn't blank while we fetch locations
+    setLinkedChildren(normalized);
+
+    // Now batch-fetch the last location for every child in parallel
+    const locationResults = await Promise.allSettled(
+      normalized.map(async (child) => {
+        const { response: locRes, data: locData } = await apiGet(
+          `/locations/location/child/${child.id}/`,
+        );
+        if (!locRes.ok) return { childId: child.id, coordinate: null };
+        const coordinate = normalizeChildLocation(locData);
+        return { childId: child.id, coordinate };
+      }),
+    );
+
+    // Merge freshly-fetched coordinates into children without clearing existing ones
+    setLinkedChildren((prev) => {
+      const coordMap = new Map<string, Coordinate | null>();
+      for (const result of locationResults) {
+        if (result.status === 'fulfilled' && result.value.coordinate) {
+          coordMap.set(result.value.childId, result.value.coordinate);
+        }
+      }
+      // If no new coords came back, keep prev as-is to avoid blank states
+      if (coordMap.size === 0) return prev;
+      return prev.map((child) => {
+        const freshCoord = coordMap.get(child.id);
+        return freshCoord ? { ...child, coordinate: freshCoord } : child;
+      });
+    });
   };
 
   const requestLocationPermissions = async () => {
@@ -168,18 +230,22 @@ export function SafetyProvider({ children }: { children: React.ReactNode }) {
     await ensureBackgroundUpdatesStarted();
 
     const { response } = await apiPost('/locations/safezone/', {
-      name,
-      latitude: zone.latitude,
-      longitude: zone.longitude,
-      radius_meters: radiusMeters,
+      zone_name: name,
+      lng: zone.longitude,
+      lat: zone.latitude,
+      radius: radiusMeters,
     });
     if (response.ok) {
       await fetchSafeZonesInternal();
     }
   };
 
-  const fetchSafeZones = async () => {
-    await fetchSafeZonesInternal();
+  const fetchSafeZones = async (childId?: string) => {
+    await fetchSafeZonesInternal(childId);
+  };
+
+  const fetchLinkedChildren = async () => {
+    await fetchLinkedChildrenInternal();
   };
 
   const deleteSafeZone = async (zoneId: string) => {
@@ -190,9 +256,25 @@ export function SafetyProvider({ children }: { children: React.ReactNode }) {
     await fetchSafeZonesInternal();
   };
 
+  const updateSafeZone = async (zoneId: string, payload: Record<string, unknown>) => {
+    const { access } = await getStoredTokens();
+    const response = await fetch(`${API_BASE_URL}/locations/safezone/${zoneId}/`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(access ? { Authorization: `Bearer ${access}` } : {}),
+      },
+      body: JSON.stringify(payload),
+    });
+    if (!response.ok) {
+      throw new Error('Failed to update safe zone');
+    }
+    await fetchSafeZonesInternal();
+  };
+
   const linkChild = async (childIdentifier: string) => {
     const { response, data } = await apiPost('/locations/link-child/', {
-      child_id: childIdentifier,
+      dependent_email: childIdentifier,
     });
     if (!response.ok) {
       const message =
@@ -209,9 +291,15 @@ export function SafetyProvider({ children }: { children: React.ReactNode }) {
     if (!response.ok) {
       throw new Error('Failed to fetch child location');
     }
-    if (data && typeof data === 'object') {
-      setChildLocation(data as Record<string, unknown>);
-    }
+    const coordinate = normalizeChildLocation(data);
+    setChildLocation(coordinate);
+    setLinkedChildren((prev) =>
+      prev.map((child) =>
+        String(child.id) === String(childId)
+          ? { ...child, coordinate: coordinate ?? child.coordinate }
+          : child,
+      ),
+    );
   };
 
   const updateChildLocation = async () => {
@@ -219,8 +307,8 @@ export function SafetyProvider({ children }: { children: React.ReactNode }) {
       accuracy: Location.Accuracy.Balanced,
     });
     const { response, data } = await apiPost('/locations/location/update/', {
-      latitude: current.coords.latitude,
-      longitude: current.coords.longitude,
+      lng: current.coords.longitude,
+      lat: current.coords.latitude,
     });
     if (!response.ok) {
       const message =
@@ -248,13 +336,16 @@ export function SafetyProvider({ children }: { children: React.ReactNode }) {
     () => ({
       safeZone,
       safeZones,
+      linkedChildren,
       childLocation,
       emergencyHistory,
       emergencyPhone,
       setEmergencyPhone,
       setSafeZoneFromCurrentLocation,
       fetchSafeZones,
+      fetchLinkedChildren,
       deleteSafeZone,
+      updateSafeZone,
       linkChild,
       fetchChildLocation,
       updateChildLocation,
@@ -262,7 +353,7 @@ export function SafetyProvider({ children }: { children: React.ReactNode }) {
       requestLocationPermissions,
       sendEmergency,
     }),
-    [safeZone, safeZones, childLocation, emergencyHistory, emergencyPhone]
+    [safeZone, safeZones, linkedChildren, childLocation, emergencyHistory, emergencyPhone]
   );
 
   return <SafetyContext.Provider value={value}>{children}</SafetyContext.Provider>;

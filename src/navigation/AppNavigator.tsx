@@ -16,6 +16,7 @@ import { AdminDashboardScreen } from '../screens/AdminDashboardScreen';
 import { SettingsScreen } from '../screens/SettingsScreen';
 import { OCRScreen } from '../screens/OCRScreen';
 import { LinkChildScreen } from '../screens/LinkChildScreen';
+import { CreateSafeZoneScreen } from '../screens/CreateSafeZoneScreen';
 import { colors } from '../theme/colors';
 
 export type RootStackParamList = {
@@ -34,6 +35,7 @@ export type RootStackParamList = {
   AdminDashboard: undefined;
   Settings: undefined;
   LinkChild: undefined;
+  CreateSafeZone: { dependentId: string; dependentName?: string };
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -87,6 +89,11 @@ export function AppNavigator() {
         <Stack.Screen
           name="LinkChild"
           component={LinkChildScreen}
+          options={{ contentStyle: { backgroundColor: colors.backgroundDark } }}
+        />
+        <Stack.Screen
+          name="CreateSafeZone"
+          component={CreateSafeZoneScreen}
           options={{ contentStyle: { backgroundColor: colors.backgroundDark } }}
         />
         <Stack.Screen

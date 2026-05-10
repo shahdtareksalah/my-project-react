@@ -6,7 +6,12 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import * as Speech from 'expo-speech';
 import { colors } from '../theme/colors';
 import { Button } from '../components/Button';
-import { apiPost } from '../api/client';
+import {
+  apiPostFormData,
+  API_PATHS,
+  createImageFormData,
+  extractApiErrorMessage,
+} from '../api/client';
 
 type Props = {
   navigation: any;
@@ -19,16 +24,6 @@ export function OCRScreen({ navigation, route }: Props) {
   const [isScanning, setIsScanning] = useState(false);
   const [ocrText, setOcrText] = useState('');
   const [cameraReady, setCameraReady] = useState(false);
-
-  const buildFallbackOcrText = (uri: string) => {
-    const filename = uri.split('/').pop() ?? 'captured image';
-    return [
-      'OCR fallback mode is active for Expo-safe builds.',
-      `Captured: ${filename}`,
-      'No native OCR engine is configured in this app build.',
-      'You can still review this capture and use text-to-speech.',
-    ].join('\n');
-  };
 
   const readText = (text: string) => {
     if (text.trim()) {
@@ -44,23 +39,36 @@ export function OCRScreen({ navigation, route }: Props) {
     try {
       const photo = await cameraRef.current.takePictureAsync({ quality: 0.8 });
       if (!photo?.uri) {
-        throw new Error('Capture failed');
+        throw new Error('No image was captured. Please try again.');
       }
 
-      const { response, data } = await apiPost('/ai/read/', {
-        image_uri: photo.uri,
-      });
-      const text =
-        response.ok && data && typeof data === 'object'
-          ? String((data as { text?: string; result?: string }).text || (data as { result?: string }).result || buildFallbackOcrText(photo.uri))
-          : buildFallbackOcrText(photo.uri);
-      setOcrText(text || 'No text detected.');
+      const formData = createImageFormData(photo.uri);
+      const { response, data } = await apiPostFormData(API_PATHS.mockRead, formData, false);
+      if (!response.ok) {
+        throw new Error(extractApiErrorMessage(data, response.status));
+      }
 
-      if (route.params?.autoRead && text) {
-        readText(text);
+      const extractedText =
+        data &&
+        typeof data === 'object' &&
+        'ocr_data' in data &&
+        (data as { ocr_data?: { full_text?: string } }).ocr_data
+          ? String((data as { ocr_data?: { full_text?: string } }).ocr_data?.full_text ?? '')
+          : '';
+      const normalizedText = extractedText.trim();
+      if (!normalizedText) {
+        throw new Error('OCR completed but no text was detected in the image.');
+      }
+
+      setOcrText(normalizedText);
+
+      if (route.params?.autoRead) {
+        readText(normalizedText);
       }
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'OCR failed';
+      const message =
+        error instanceof Error ? error.message : 'OCR request failed due to a network or server issue.';
+      setOcrText('');
       Alert.alert('OCR error', message);
     } finally {
       setIsScanning(false);

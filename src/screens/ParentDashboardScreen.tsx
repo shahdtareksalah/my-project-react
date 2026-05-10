@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import {
   View, Text, StyleSheet, ScrollView,
-  TouchableOpacity, Alert,
+  TouchableOpacity, Alert, InteractionManager, ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -31,6 +31,14 @@ export function ParentDashboardScreen({ navigation }: any) {
   } = useSafety();
 
   const [focusCenter, setFocusCenter] = useState<{ latitude: number; longitude: number } | null>(null);
+  const [mapReady, setMapReady] = useState(false);
+
+  useEffect(() => {
+    const task = InteractionManager.runAfterInteractions(() => {
+      setMapReady(true);
+    });
+    return () => task.cancel();
+  }, []);
 
   useEffect(() => {
     const load = async () => {
@@ -106,13 +114,19 @@ export function ParentDashboardScreen({ navigation }: any) {
             )}
           </View>
           <View style={styles.mapWrapper}>
-            <OsmLeafletMap
-              center={mapCenter}
-              zoom={11}
-              markers={childMarkers}
-              safeZones={mapSafeZones}
-              focusCenter={focusCenter}
-            />
+            {mapReady ? (
+              <OsmLeafletMap
+                center={mapCenter}
+                zoom={11}
+                markers={childMarkers}
+                safeZones={mapSafeZones}
+                focusCenter={focusCenter}
+              />
+            ) : (
+              <View style={[StyleSheet.absoluteFill, { alignItems: 'center', justifyContent: 'center', backgroundColor: '#E5E7EB' }]}>
+                <ActivityIndicator size="large" color={colors.primary} />
+              </View>
+            )}
           </View>
         </View>
 
@@ -202,10 +216,16 @@ export function ParentDashboardScreen({ navigation }: any) {
         {/* ── Quick Actions ── */}
         <View style={styles.quickSection}>
           <Text style={styles.quickTitle}>Quick Actions</Text>
-          <TouchableOpacity style={[styles.quickTile, styles.quickTilePrimary]} onPress={() => { }}>
-            <Ionicons name="call" size={22} color={colors.white} />
-            <Text style={styles.quickTileText}>Call Child</Text>
-          </TouchableOpacity>
+          <View style={styles.quickRow}>
+            <TouchableOpacity style={[styles.quickTile, styles.quickTilePrimary]} onPress={() => navigation.navigate('LinkChild')}>
+              <Ionicons name="person-add" size={22} color={colors.white} />
+              <Text style={styles.quickTileText}>Link New Child</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={[styles.quickTile, styles.quickTilePrimary]} onPress={() => { }}>
+              <Ionicons name="call" size={22} color={colors.white} />
+              <Text style={styles.quickTileText}>Call Child</Text>
+            </TouchableOpacity>
+          </View>
         </View>
 
       </ScrollView>
@@ -331,7 +351,9 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase', letterSpacing: 0.8,
     paddingHorizontal: 2,
   },
+  quickRow: { flexDirection: 'row', gap: 12 },
   quickTile: {
+    flex: 1,
     alignItems: 'center', justifyContent: 'center',
     gap: 8, paddingVertical: 18,
     borderRadius: 14, borderWidth: 1,

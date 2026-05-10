@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
+import React, { createContext, useContext, useEffect, useMemo, useState, useRef } from 'react';
 import * as TaskManager from 'expo-task-manager';
 import * as Location from 'expo-location';
 import * as Notifications from 'expo-notifications';
@@ -32,7 +32,7 @@ type SafetyContextValue = {
   setEmergencyPhone: (phone: string) => Promise<void>;
   setSafeZoneFromCurrentLocation: (radiusMeters: number, name: string) => Promise<void>;
   fetchSafeZones: (childId?: string) => Promise<void>;
-  fetchLinkedChildren: () => Promise<void>;
+  fetchLinkedChildren: (force?: boolean) => Promise<void>;
   deleteSafeZone: (zoneId: string) => Promise<void>;
   updateSafeZone: (zoneId: string, payload: Record<string, unknown>) => Promise<void>;
   linkChild: (childIdentifier: string) => Promise<void>;
@@ -103,6 +103,7 @@ async function ensureBackgroundUpdatesStarted() {
 }
 
 export function SafetyProvider({ children }: { children: React.ReactNode }) {
+  const lastFetchTime = useRef(0);
   const [safeZone, setSafeZone] = useState<SafeZone | null>(null);
   const [safeZones, setSafeZones] = useState<NormalizedSafeZone[]>([]);
   const [linkedChildren, setLinkedChildren] = useState<NormalizedLinkedChild[]>([]);
@@ -158,7 +159,12 @@ export function SafetyProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const fetchLinkedChildrenInternal = async () => {
+  const fetchLinkedChildrenInternal = async (force = false) => {
+    const now = Date.now();
+    if (!force && now - lastFetchTime.current < 30000) {
+      return; // Use cached data if fetched within the last 30 seconds
+    }
+
     const { response, data } = await apiGet('/locations/linked-children/');
     if (!response.ok || !Array.isArray(data)) {
       setLinkedChildren([]);
@@ -170,24 +176,28 @@ export function SafetyProvider({ children }: { children: React.ReactNode }) {
     // Set children immediately so the UI isn't blank while we fetch locations
     setLinkedChildren(normalized);
 
-    // Now batch-fetch the last location for every child in parallel
-    const locationResults = await Promise.allSettled(
+    // Now batch-fetch the last location for every child in parallel using Promise.all
+    const locationResults = await Promise.all(
       normalized.map(async (child) => {
-        const { response: locRes, data: locData } = await apiGet(
-          `/locations/location/child/${child.id}/`,
-        );
-        if (!locRes.ok) return { childId: child.id, coordinate: null };
-        const coordinate = normalizeChildLocation(locData);
-        return { childId: child.id, coordinate };
-      }),
+        try {
+          const { response: locRes, data: locData } = await apiGet(
+            `/locations/location/child/${child.id}/`
+          );
+          if (!locRes.ok) return { childId: child.id, coordinate: null };
+          const coordinate = normalizeChildLocation(locData);
+          return { childId: child.id, coordinate };
+        } catch (error) {
+          return { childId: child.id, coordinate: null };
+        }
+      })
     );
 
     // Merge freshly-fetched coordinates into children without clearing existing ones
     setLinkedChildren((prev) => {
       const coordMap = new Map<string, Coordinate | null>();
       for (const result of locationResults) {
-        if (result.status === 'fulfilled' && result.value.coordinate) {
-          coordMap.set(result.value.childId, result.value.coordinate);
+        if (result.coordinate) {
+          coordMap.set(result.childId, result.coordinate);
         }
       }
       // If no new coords came back, keep prev as-is to avoid blank states
@@ -197,6 +207,8 @@ export function SafetyProvider({ children }: { children: React.ReactNode }) {
         return freshCoord ? { ...child, coordinate: freshCoord } : child;
       });
     });
+
+    lastFetchTime.current = Date.now();
   };
 
   const requestLocationPermissions = async () => {
@@ -244,8 +256,8 @@ export function SafetyProvider({ children }: { children: React.ReactNode }) {
     await fetchSafeZonesInternal(childId);
   };
 
-  const fetchLinkedChildren = async () => {
-    await fetchLinkedChildrenInternal();
+  const fetchLinkedChildren = async (force = false) => {
+    await fetchLinkedChildrenInternal(force);
   };
 
   const deleteSafeZone = async (zoneId: string) => {

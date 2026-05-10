@@ -1,7 +1,10 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export const API_BASE_URL = 'http://192.168.1.55:8000';
-
+export const API_PATHS = {
+  mockRead: '/ai/mock/read/',
+  mockDescribe: '/ai/mock/describe/',
+} as const;
 const ACCESS_TOKEN_KEY = 'smartaid_access_token';
 const REFRESH_TOKEN_KEY = 'smartaid_refresh_token';
 
@@ -11,6 +14,15 @@ type RequestOptions = {
   method?: HttpMethod;
   body?: unknown;
   requiresAuth?: boolean;
+  headers?: Record<string, string>;
+  isFormData?: boolean;
+};
+
+type BackendErrorData = {
+  detail?: string;
+  message?: string;
+  error?: string;
+  non_field_errors?: string[];
 };
 
 async function parseResponseBody(response: Response) {
@@ -73,21 +85,27 @@ async function refreshAccessToken() {
 }
 
 export async function apiRequest(path: string, options: RequestOptions = {}) {
-  const { method = 'GET', body, requiresAuth = true } = options;
+  const { method = 'GET', body, requiresAuth = true, headers: customHeaders, isFormData = false } = options;
   const url = buildUrl(path);
   const { access } = await getStoredTokens();
 
   const execute = async (token: string | null) => {
-    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-    if (requiresAuth && token) {
+ const headers: Record<string, string> = isFormData ? {} : { 'Content-Type': 'application/json' };
+    if (customHeaders) {
+      Object.assign(headers, customHeaders);
+    }    if (requiresAuth && token) {
       headers.Authorization = `Bearer ${token}`;
     }
 
     return fetch(url, {
       method,
       headers,
-      body: body === undefined ? undefined : JSON.stringify(body),
-    });
+body:
+        body === undefined
+          ? undefined
+          : isFormData
+          ? (body as FormData)
+          : JSON.stringify(body),    });
   };
 
   let response = await execute(access);
@@ -108,6 +126,47 @@ export const apiGet = (path: string, requiresAuth = true) =>
 
 export const apiPost = (path: string, body: unknown, requiresAuth = true) =>
   apiRequest(path, { method: 'POST', body, requiresAuth });
+export const apiPostFormData = (path: string, body: FormData, requiresAuth = true) =>
+  apiRequest(path, { method: 'POST', body, requiresAuth, isFormData: true });
 
 export const apiDelete = (path: string, body?: unknown, requiresAuth = true) =>
   apiRequest(path, { method: 'DELETE', body, requiresAuth });
+export function createImageFormData(imageUri: string) {
+  const filename = imageUri.split('/').pop() ?? `capture-${Date.now()}.jpg`;
+  const ext = filename.split('.').pop()?.toLowerCase();
+  const mimeType =
+    ext === 'png'
+      ? 'image/png'
+      : ext === 'webp'
+      ? 'image/webp'
+      : ext === 'heic'
+      ? 'image/heic'
+      : 'image/jpeg';
+
+  const formData = new FormData();
+  formData.append(
+    'image',
+    {
+      uri: imageUri,
+      name: filename,
+      type: mimeType,
+    } as unknown as Blob
+  );
+
+  return formData;
+}
+
+export function extractApiErrorMessage(data: unknown, status: number) {
+  if (data && typeof data === 'object') {
+    const payload = data as BackendErrorData;
+    if (payload.detail) return String(payload.detail);
+    if (payload.message) return String(payload.message);
+    if (payload.error) return String(payload.error);
+    if (Array.isArray(payload.non_field_errors) && payload.non_field_errors.length > 0) {
+      return payload.non_field_errors.join(', ');
+    }
+  }
+
+  if (status === 400) return 'Bad request. Please capture a valid image and try again.';
+  return `Request failed with status ${status}.`;
+}

@@ -134,7 +134,25 @@ function buildHtml({
 </html>`;
 }
 
-export function OsmLeafletMap({ center, zoom, marker, markers, safeZones, focusCenter, onPress }: Props) {
+function areEqual(prevProps: Props, nextProps: Props) {
+  if (prevProps.zoom !== nextProps.zoom) return false;
+
+  if (prevProps.center?.latitude !== nextProps.center?.latitude ||
+      prevProps.center?.longitude !== nextProps.center?.longitude) return false;
+
+  if (prevProps.focusCenter?.latitude !== nextProps.focusCenter?.latitude ||
+      prevProps.focusCenter?.longitude !== nextProps.focusCenter?.longitude) return false;
+
+  if (prevProps.marker?.latitude !== nextProps.marker?.latitude ||
+      prevProps.marker?.longitude !== nextProps.marker?.longitude) return false;
+
+  if (JSON.stringify(prevProps.markers) !== JSON.stringify(nextProps.markers)) return false;
+  if (JSON.stringify(prevProps.safeZones) !== JSON.stringify(nextProps.safeZones)) return false;
+
+  return true;
+}
+
+const OsmLeafletMapComponent = ({ center, zoom, marker, markers, safeZones, focusCenter, onPress }: Props) => {
   const webViewRef = useRef<WebView>(null);
 
   const html = useMemo(
@@ -193,6 +211,8 @@ export function OsmLeafletMap({ center, zoom, marker, markers, safeZones, focusC
     </View>
   );
 }
+
+export const OsmLeafletMap = React.memo(OsmLeafletMapComponent, areEqual);
 
 const styles = StyleSheet.create({
   wrapper: { flex: 1 },

@@ -6,7 +6,6 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   Alert,
-  Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -19,7 +18,12 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../navigation/AppNavigator';
 import { Button } from '../components/Button';
 import { colors } from '../theme/colors';
-import { apiPost } from '../api/client';
+import {
+  apiPostFormData,
+  API_PATHS,
+  createImageFormData,
+  extractApiErrorMessage,
+} from '../api/client';
 
 type Props = {
   navigation: NativeStackNavigationProp<RootStackParamList, 'CameraAssistance'>;
@@ -33,48 +37,52 @@ export function CameraAssistanceScreen({ navigation }: Props) {
   const [isCapturing, setIsCapturing] = useState(false);
   const [detectedText, setDetectedText] = useState('');
 
-  const buildFallbackOcrText = useCallback((uri: string) => {
-    const filename = uri.split('/').pop() ?? 'captured image';
-    return [
-      'OCR fallback mode is active.',
-      `Captured: ${filename}`,
-      'Native OCR is not enabled in this Expo build.',
-    ].join('\n');
-  }, []);
-
   const toggleFacing = useCallback(() => {
     setFacing((current) => (current === 'back' ? 'front' : 'back'));
   }, []);
 
-  const takePicture = useCallback(async () => {
+  const runDescribe = useCallback(async () => {
     if (!cameraRef.current || !isCameraReady || isCapturing) return;
+
     try {
       setIsCapturing(true);
       const photo = await cameraRef.current.takePictureAsync({
         quality: 0.8,
         skipProcessing: false,
       });
-      if (photo?.uri) {
-        const fallbackText = buildFallbackOcrText(photo.uri);
-        const { response, data } = await apiPost('/ai/describe/', {
-          image_uri: photo.uri,
-        });
-        const describedText =
-          response.ok && data && typeof data === 'object'
-            ? String((data as { description?: string; result?: string }).description || (data as { result?: string }).result || fallbackText)
-            : fallbackText;
-        setDetectedText(describedText || 'No text detected');
-        if (Platform.OS !== 'web' && !describedText) {
-          Alert.alert('Photo captured', 'No text was detected in this frame.', [{ text: 'OK' }]);
-        }
+
+      if (!photo?.uri) {
+        throw new Error('No image was captured. Please try again.');
       }
+
+      const formData = createImageFormData(photo.uri);
+      const { response, data } = await apiPostFormData(API_PATHS.mockDescribe, formData, false);
+      if (!response.ok) {
+        throw new Error(extractApiErrorMessage(data, response.status));
+      }
+
+      const description =
+        data &&
+        typeof data === 'object' &&
+        'analysis' in data &&
+        (data as { analysis?: { description?: string } }).analysis
+          ? String((data as { analysis?: { description?: string } }).analysis?.description ?? '')
+          : '';
+
+      const normalizedDescription = description.trim();
+      if (!normalizedDescription) {
+        throw new Error('Describe API returned an empty description.');
+      }
+
+      setDetectedText(normalizedDescription);
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to take picture';
+      const message = err instanceof Error ? err.message : 'Describe request failed.';
+      setDetectedText('');
       Alert.alert('Error', message);
     } finally {
       setIsCapturing(false);
     }
-  }, [buildFallbackOcrText, isCameraReady, isCapturing]);
+  }, [isCameraReady, isCapturing]);
 
   const goBack = useCallback(() => {
     navigation.goBack();
@@ -163,7 +171,7 @@ export function CameraAssistanceScreen({ navigation }: Props) {
 
         <TouchableOpacity
           style={[styles.captureButton, (!isCameraReady || isCapturing) && styles.buttonDisabled]}
-          onPress={takePicture}
+          onPress={runDescribe}
           disabled={!isCameraReady || isCapturing}
         >
           {isCapturing ? (
@@ -180,7 +188,7 @@ export function CameraAssistanceScreen({ navigation }: Props) {
         <Button
           title="DESCRIBE"
           variant="outline"
-          onPress={takePicture}
+          onPress={runDescribe}
           icon={<Ionicons name="document-text-outline" size={18} color={colors.white} />}
           style={styles.secondaryBtn}
           textStyle={{ color: colors.white }}

@@ -64,7 +64,7 @@ function distanceInMeters(from: Location.LocationObjectCoords, zone: SafeZone) {
 }
 
 TaskManager.defineTask(LOCATION_TASK_NAME, async ({ data, error }) => {
-  if (error || !data || !zoneSnapshot) {
+  if (error || !data) {
     return;
   }
 
@@ -74,13 +74,22 @@ TaskManager.defineTask(LOCATION_TASK_NAME, async ({ data, error }) => {
     return;
   }
 
-  const distance = distanceInMeters(latest, zoneSnapshot);
-  if (distance > zoneSnapshot.radiusMeters) {
-    await triggerEmergencyAlert({
-      trigger: 'safe-zone',
-      contactPhone: emergencyPhoneSnapshot,
-      safeZoneName: zoneSnapshot.name,
+  try {
+    const { response, data: resData } = await apiPost('/emergency/simulate-location/', {
+      location: [latest.longitude, latest.latitude],
     });
+
+    if (response.ok && resData && typeof resData === 'object' && (resData as { status?: string }).status === 'alert') {
+      await Notifications.scheduleNotificationAsync({
+        content: {
+          title: 'Safe Zone Alert',
+          body: 'You have left your designated safe zone!',
+        },
+        trigger: null,
+      });
+    }
+  } catch (err) {
+    console.log('Background sync failed:', err);
   }
 });
 
@@ -92,8 +101,8 @@ async function ensureBackgroundUpdatesStarted() {
 
   await Location.startLocationUpdatesAsync(LOCATION_TASK_NAME, {
     accuracy: Location.Accuracy.Balanced,
-    timeInterval: 15000,
-    distanceInterval: 20,
+    timeInterval: 60000,
+    distanceInterval: 10,
     showsBackgroundLocationIndicator: true,
     foregroundService: {
       notificationTitle: 'SmartAid tracking active',

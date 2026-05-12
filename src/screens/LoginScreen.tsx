@@ -15,6 +15,7 @@ import { Input } from '../components/Input';
 import { Button } from '../components/Button';
 import { colors } from '../theme/colors';
 import { apiPost, saveTokens } from '../api/client';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export function LoginScreen({ navigation }: any) {
   const [email, setEmail] = useState('');
@@ -39,10 +40,12 @@ export function LoginScreen({ navigation }: any) {
         if (data && typeof data === 'object') {
           const tokenPayload = data as { access?: string; refresh?: string };
           await saveTokens({ access: tokenPayload.access, refresh: tokenPayload.refresh });
+          await AsyncStorage.setItem('user_profile', JSON.stringify(data));
         }
         navigation.replace('Home');
         return;
       }
+
 
       const apiMessage =
         (data && typeof data === 'object' && ('message' in data || 'detail' in data)

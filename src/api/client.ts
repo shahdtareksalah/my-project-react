@@ -1,9 +1,9 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-export const API_BASE_URL = 'http://192.168.1.55:8000';
+export const API_BASE_URL = 'http://192.168.1.128:8000';
 export const API_PATHS = {
-  mockRead: '/ai/mock/read/',
-  mockDescribe: '/ai/mock/describe/',
+  read: '/ai/read/',
+  describe: '/ai/describe/',
 } as const;
 const ACCESS_TOKEN_KEY = 'smartaid_access_token';
 const REFRESH_TOKEN_KEY = 'smartaid_refresh_token';
@@ -90,22 +90,23 @@ export async function apiRequest(path: string, options: RequestOptions = {}) {
   const { access } = await getStoredTokens();
 
   const execute = async (token: string | null) => {
- const headers: Record<string, string> = isFormData ? {} : { 'Content-Type': 'application/json' };
+    const headers: Record<string, string> = isFormData ? { 'Content-Type': 'multipart/form-data' } : { 'Content-Type': 'application/json' };
     if (customHeaders) {
       Object.assign(headers, customHeaders);
-    }    if (requiresAuth && token) {
+    } if (requiresAuth && token) {
       headers.Authorization = `Bearer ${token}`;
     }
 
     return fetch(url, {
       method,
       headers,
-body:
+      body:
         body === undefined
           ? undefined
           : isFormData
-          ? (body as FormData)
-          : JSON.stringify(body),    });
+            ? (body as FormData)
+            : JSON.stringify(body),
+    });
   };
 
   let response = await execute(access);
@@ -132,24 +133,13 @@ export const apiPostFormData = (path: string, body: FormData, requiresAuth = tru
 export const apiDelete = (path: string, body?: unknown, requiresAuth = true) =>
   apiRequest(path, { method: 'DELETE', body, requiresAuth });
 export function createImageFormData(imageUri: string) {
-  const filename = imageUri.split('/').pop() ?? `capture-${Date.now()}.jpg`;
-  const ext = filename.split('.').pop()?.toLowerCase();
-  const mimeType =
-    ext === 'png'
-      ? 'image/png'
-      : ext === 'webp'
-      ? 'image/webp'
-      : ext === 'heic'
-      ? 'image/heic'
-      : 'image/jpeg';
-
   const formData = new FormData();
   formData.append(
     'image',
     {
       uri: imageUri,
-      name: filename,
-      type: mimeType,
+      name: 'ocr_image.jpg',
+      type: 'image/jpeg',
     } as unknown as Blob
   );
 

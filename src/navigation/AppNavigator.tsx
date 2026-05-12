@@ -17,6 +17,7 @@ import { SettingsScreen } from '../screens/SettingsScreen';
 import { OCRScreen } from '../screens/OCRScreen';
 import { LinkChildScreen } from '../screens/LinkChildScreen';
 import { CreateSafeZoneScreen } from '../screens/CreateSafeZoneScreen';
+import { AlertHistoryScreen } from '../screens/AlertHistoryScreen';
 import { colors } from '../theme/colors';
 
 export type RootStackParamList = {
@@ -35,6 +36,7 @@ export type RootStackParamList = {
   AdminDashboard: undefined;
   Settings: undefined;
   LinkChild: undefined;
+  AlertHistory: undefined;
   CreateSafeZone: { dependentId: string; dependentName?: string };
 };
 
@@ -109,6 +111,11 @@ export function AppNavigator() {
         <Stack.Screen
           name="Settings"
           component={SettingsScreen}
+          options={{ contentStyle: { backgroundColor: colors.backgroundDark } }}
+        />
+        <Stack.Screen
+          name="AlertHistory"
+          component={AlertHistoryScreen}
           options={{ contentStyle: { backgroundColor: colors.backgroundDark } }}
         />
       </Stack.Navigator>

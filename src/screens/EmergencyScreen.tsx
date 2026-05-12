@@ -4,16 +4,39 @@ import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors } from '../theme/colors';
 import { useSafety } from '../context/SafetyContext';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export function EmergencyScreen({ navigation }: any) {
   const { sendEmergency } = useSafety();
+  const [isParent, setIsParent] = React.useState(false);
+
+  React.useEffect(() => {
+    const checkRole = async () => {
+      try {
+        const profileStr = await AsyncStorage.getItem('user_profile');
+        if (profileStr) {
+          const profile = JSON.parse(profileStr);
+          if (profile.role === 'parent') {
+            setIsParent(true);
+          }
+        }
+      } catch (err) {
+        console.warn('Failed to parse user profile', err);
+      }
+    };
+    checkRole();
+  }, []);
 
   return (
     <SafeAreaView style={styles.safe}>
       <View style={styles.container}>
         <TouchableOpacity
-          style={styles.emergencyButton}
+          style={[styles.emergencyButton, isParent && styles.disabledButton]}
           onPress={async () => {
+            if (isParent) {
+              Alert.alert('Action Disabled', 'SOS is only available for children.');
+              return;
+            }
             try {
               await sendEmergency('manual');
             } catch (error) {
@@ -21,13 +44,15 @@ export function EmergencyScreen({ navigation }: any) {
               Alert.alert('Emergency Error', message);
             }
           }}
-          activeOpacity={0.9}
+          activeOpacity={isParent ? 1 : 0.9}
         >
           <Ionicons name="warning" size={48} color={colors.white} />
           <Text style={styles.emergencyLabel}>EMERGENCY</Text>
         </TouchableOpacity>
 
-        <Text style={styles.instruction}>Press in case of emergency</Text>
+        <Text style={styles.instruction}>
+          {isParent ? 'SOS Available for Children Only' : 'Press in case of emergency'}
+        </Text>
 
         <TouchableOpacity
           style={styles.backLink}
@@ -61,6 +86,10 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.4,
     shadowRadius: 12,
     elevation: 8,
+  },
+  disabledButton: {
+    backgroundColor: '#9CA3AF',
+    shadowColor: '#9CA3AF',
   },
   emergencyLabel: {
     fontSize: 18,

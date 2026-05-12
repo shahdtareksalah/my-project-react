@@ -1,6 +1,6 @@
 import { Platform } from 'react-native';
 
-const API_HOST = '192.168.1.55';
+const API_HOST = '192.168.1.128';
 const API_PORT = '8000';
 
 export const API_BASE_URL = `http://${API_HOST}:${API_PORT}`;
@@ -68,8 +68,7 @@ export const postWithFallback = async (path: string, payload: Record<string, unk
   }
 
   throw new Error(
-    `Unable to reach backend (${API_BASE_URL}). If using USB, run: adb reverse tcp:8000 tcp:8000. Error: ${
-      (lastError as Error)?.message || 'Network request failed'
+    `Unable to reach backend (${API_BASE_URL}). If using USB, run: adb reverse tcp:8000 tcp:8000. Error: ${(lastError as Error)?.message || 'Network request failed'
     }`
   );
 };

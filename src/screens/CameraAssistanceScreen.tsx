@@ -56,7 +56,7 @@ export function CameraAssistanceScreen({ navigation }: Props) {
       }
 
       const formData = createImageFormData(photo.uri);
-      const { response, data } = await apiPostFormData(API_PATHS.mockDescribe, formData, false);
+      const { response, data } = await apiPostFormData(API_PATHS.describe, formData, false);
       if (!response.ok) {
         throw new Error(extractApiErrorMessage(data, response.status));
       }

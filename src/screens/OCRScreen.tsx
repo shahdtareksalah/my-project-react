@@ -43,7 +43,7 @@ export function OCRScreen({ navigation, route }: Props) {
       }
 
       const formData = createImageFormData(photo.uri);
-      const { response, data } = await apiPostFormData(API_PATHS.mockRead, formData, false);
+      const { response, data } = await apiPostFormData(API_PATHS.read, formData, false);
       if (!response.ok) {
         throw new Error(extractApiErrorMessage(data, response.status));
       }

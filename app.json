@@ -44,7 +44,10 @@
       "infoPlist": {
         "NSCameraUsageDescription": "Allow SmartAid to access your camera for AI-powered assistance.",
         "NSMicrophoneUsageDescription": "Allow SmartAid to access your microphone for voice and video features.",
-        "NSLocationWhenInUseUsageDescription": "Allow SmartAid to access your location for safety features."
+        "NSLocationWhenInUseUsageDescription": "Allow SmartAid to access your location for safety features.",
+        "NSAppTransportSecurity": {
+          "NSAllowsArbitraryLoads": true
+        }
       }
     },
 
@@ -56,7 +59,8 @@
       },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
-      "package": "com.anonymous.smartaid"
+      "package": "com.anonymous.smartaid",
+      "usesCleartextTraffic": true
     },
 
     "web": {

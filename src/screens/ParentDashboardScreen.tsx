@@ -94,7 +94,7 @@ export function ParentDashboardScreen({ navigation }: any) {
           <Text style={styles.welcomeSmall}>Welcome back</Text>
           <Text style={styles.headerTitle}>Parent Dashboard</Text>
         </View>
-        <TouchableOpacity style={styles.headerBtn}>
+        <TouchableOpacity style={styles.headerBtn} onPress={() => navigation.navigate('AlertHistory')}>
           <Ionicons name="notifications-outline" size={22} color={colors.white} />
         </TouchableOpacity>
       </View>

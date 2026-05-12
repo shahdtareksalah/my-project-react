@@ -1,1 +1,0 @@
-export { CameraAssistanceScreen as CameraScreen } from './CameraAssistanceScreen';

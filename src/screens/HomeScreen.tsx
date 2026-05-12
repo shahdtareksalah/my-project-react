@@ -1,18 +1,17 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState, useContext } from 'react';
 import { ActivityIndicator, Alert, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import Voice, {
-  SpeechEndEvent,
-  SpeechErrorEvent,
-  SpeechResultsEvent,
-} from '@react-native-voice/voice';
-import { Card } from '../components/Card';
+import Voice, { SpeechEndEvent, SpeechErrorEvent, SpeechResultsEvent } from '@react-native-voice/voice';
 import { colors } from '../theme/colors';
 import { useSafety } from '../context/SafetyContext';
+import { AuthContext } from '../context/AuthContext';
 
 export function HomeScreen({ navigation }: any) {
   const { sendEmergency } = useSafety();
+  const auth = useContext(AuthContext);
+  const username = auth?.user?.username || 'Guest';
+
   const [isRecording, setIsRecording] = useState(false);
   const [isProcessingSpeech, setIsProcessingSpeech] = useState(false);
   const [heardPhrase, setHeardPhrase] = useState('');
@@ -50,12 +49,10 @@ export function HomeScreen({ navigation }: any) {
 
   const runVoiceCommand = async (rawPhrase: string) => {
     const phrase = rawPhrase.trim().toLowerCase();
-    if (!phrase) {
-      return;
-    }
+    if (!phrase) return;
 
     if (phrase.includes('open camera')) {
-      navigation.navigate('Camera');
+      navigation.navigate('CameraAssistance');
     } else if (phrase.includes('read text')) {
       navigation.navigate('OCR', { autoRead: true });
     } else if (phrase.includes('send help')) {
@@ -65,7 +62,6 @@ export function HomeScreen({ navigation }: any) {
 
   const startRecording = async () => {
     if (isRecording || isProcessingSpeech) return;
-
     try {
       setHeardPhrase('');
       setIsProcessingSpeech(true);
@@ -81,7 +77,6 @@ export function HomeScreen({ navigation }: any) {
 
   const stopRecording = async () => {
     if (!isRecording) return;
-
     try {
       setIsProcessingSpeech(true);
       await Voice.stop();
@@ -100,229 +95,265 @@ export function HomeScreen({ navigation }: any) {
           <Text style={styles.brand}>SmartAid</Text>
           <Text style={styles.tagline}>AI-Powered Assistance</Text>
         </View>
-        <TouchableOpacity
-          style={styles.iconButton}
-          onPress={() => navigation.navigate('Settings')}
-        >
-          <Ionicons name="settings-outline" size={24} color={colors.white} />
+        <TouchableOpacity style={styles.profileButton} onPress={() => navigation.navigate('Settings')}>
+          <Ionicons name="person-circle-outline" size={38} color={colors.primary} />
         </TouchableOpacity>
       </View>
 
-      <ScrollView
-        style={styles.scroll}
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
-      >
-        <Card dark style={styles.welcomeCard}>
-          <View style={styles.welcomeRow}>
-            <View style={styles.avatar}>
-              <Ionicons name="person-outline" size={28} color={colors.white} />
-            </View>
-            <View style={styles.welcomeText}>
-              <Text style={styles.welcomeTitle}>Welcome back</Text>
-              <Text style={styles.welcomeName}>Sarah Johnson</Text>
-            </View>
-            <View style={styles.shieldIcon}>
-              <Ionicons name="shield-outline" size={24} color={colors.white} />
-            </View>
-          </View>
-        </Card>
+      <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+        
+        {/* Welcome Section */}
+        <View style={styles.welcomeSection}>
+          <Text style={styles.welcomeTitle}>Welcome back,</Text>
+          <Text style={styles.welcomeName}>{username}</Text>
+        </View>
 
-        <Card>
+        {/* Tools Section */}
+        <Text style={styles.sectionHeading}>Tools</Text>
+        <View style={styles.gridContainer}>
+          <TouchableOpacity style={styles.gridCardWrapper} activeOpacity={0.8} onPress={() => navigation.navigate('CameraAssistance')}>
+            <View style={styles.toolCard}>
+              <View style={[styles.toolIconBg, { backgroundColor: '#E0F7FA' }]}>
+                <Ionicons name="hardware-chip-outline" size={32} color="#00BCD4" />
+              </View>
+              <Text style={styles.toolTitle}>Camera</Text>
+              <Text style={styles.toolSubtitle}>Live vision</Text>
+            </View>
+          </TouchableOpacity>
+
+          <TouchableOpacity style={styles.gridCardWrapper} activeOpacity={0.8} onPress={() => navigation.navigate('OCR', { autoRead: true })}>
+            <View style={styles.toolCard}>
+              <View style={[styles.toolIconBg, { backgroundColor: '#E8EAF6' }]}>
+                <Ionicons name="scan-outline" size={32} color="#3F51B5" />
+              </View>
+              <Text style={styles.toolTitle}>Scan Text</Text>
+              <Text style={styles.toolSubtitle}>Read aloud</Text>
+            </View>
+          </TouchableOpacity>
+        </View>
+
+        {/* Dashboard Section */}
+        <Text style={styles.sectionHeading}>Dashboard</Text>
+
+        <View style={styles.card}>
           <View style={styles.statusRow}>
-            <Text style={styles.sectionTitle}>Child Status</Text>
+            <Text style={styles.cardTitle}>Child Status</Text>
             <View style={styles.safeBadge}>
               <View style={styles.safeDot} />
               <Text style={styles.safeText}>Safe</Text>
             </View>
           </View>
           <View style={styles.locationRow}>
-            <Ionicons name="location-outline" size={20} color={colors.textPrimary} />
+            <Ionicons name="location-outline" size={20} color={colors.textSecondary} />
             <Text style={styles.locationText}>Ahmed Ali - Al-Mansour School</Text>
           </View>
           <Text style={styles.updated}>Last updated: 2 minutes ago</Text>
-        </Card>
+        </View>
 
-        <TouchableOpacity
-          activeOpacity={0.8}
-          onPress={() => navigation.navigate('CameraAssistance')}
-        >
-          <Card dark style={styles.featureCard}>
-            <View style={styles.featureIcon}>
-              <Ionicons name="camera-outline" size={28} color={colors.white} />
-            </View>
-            <View style={styles.featureContent}>
-              <Text style={styles.featureTitle}>Camera Assistance</Text>
-              <Text style={styles.featureSubtitle}>AI-powered vision support</Text>
-            </View>
-            <Ionicons name="chevron-forward" size={24} color={colors.textLight} />
-          </Card>
-        </TouchableOpacity>
+        {/* Quick Actions */}
+        <Text style={styles.sectionHeading}>Quick Actions</Text>
 
-        <TouchableOpacity
-          activeOpacity={0.8}
-          onPress={() => navigation.navigate('ChildLocation')}
-        >
-          <Card dark style={styles.featureCard}>
-            <View style={styles.featureIcon}>
-              <Ionicons name="location-outline" size={28} color={colors.white} />
+        <TouchableOpacity activeOpacity={0.8} onPress={() => navigation.navigate('ChildLocation')}>
+          <View style={styles.card}>
+            <View style={styles.featureRow}>
+              <View style={[styles.featureIconBg, { backgroundColor: '#E8F5E9' }]}>
+                <Ionicons name="map-outline" size={24} color="#4CAF50" />
+              </View>
+              <View style={styles.featureContent}>
+                <Text style={styles.cardTitle}>Child Location</Text>
+                <Text style={styles.cardSubtitle}>Track and monitor safety</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={24} color={'#AAAAAA'} />
             </View>
-            <View style={styles.featureContent}>
-              <Text style={styles.featureTitle}>Child Location</Text>
-              <Text style={styles.featureSubtitle}>Track and monitor safety</Text>
-            </View>
-            <Ionicons name="chevron-forward" size={24} color={colors.textLight} />
-          </Card>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          activeOpacity={0.8}
-          onPress={() => sendEmergency('manual')}
-        >
-          <View style={[styles.featureCard, styles.emergencyCard]}>
-            <View style={styles.featureIcon}>
-              <Ionicons name="warning-outline" size={28} color={colors.white} />
-            </View>
-            <View style={styles.featureContent}>
-              <Text style={styles.featureTitle}>Emergency</Text>
-              <Text style={styles.featureSubtitle}>Quick emergency access</Text>
-            </View>
-            <Ionicons name="chevron-forward" size={24} color={colors.white} />
           </View>
         </TouchableOpacity>
 
-        <Card>
+        <TouchableOpacity activeOpacity={0.8} onPress={() => sendEmergency('manual')}>
+          <View style={[styles.card, styles.emergencyCard]}>
+            <View style={styles.featureRow}>
+              <View style={[styles.featureIconBg, { backgroundColor: 'rgba(255,255,255,0.2)' }]}>
+                <Ionicons name="warning-outline" size={24} color={'#FFFFFF'} />
+              </View>
+              <View style={styles.featureContent}>
+                <Text style={[styles.cardTitle, { color: '#FFFFFF' }]}>Emergency</Text>
+                <Text style={[styles.cardSubtitle, { color: 'rgba(255,255,255,0.8)' }]}>Quick emergency access</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={24} color={'#FFFFFF'} />
+            </View>
+          </View>
+        </TouchableOpacity>
+
+        {/* Voice Navigation */}
+        <View style={styles.card}>
           <View style={styles.statusRow}>
-            <Text style={styles.sectionTitle}>Voice Navigation</Text>
+            <Text style={styles.cardTitle}>Voice Navigation</Text>
             {isProcessingSpeech ? <ActivityIndicator color={colors.primary} /> : null}
           </View>
-          <Text style={styles.updated}>{commandHelp}</Text>
+          <Text style={styles.cardSubtitle}>{commandHelp}</Text>
           <View style={styles.voiceControls}>
             <TouchableOpacity
-              style={[styles.voiceActionBtn, isRecording && styles.voiceBtnActive]}
+              style={[styles.voiceActionBtn, isRecording ? styles.voiceBtnActive : { backgroundColor: colors.primary }]}
               onPress={startRecording}
               disabled={isRecording || isProcessingSpeech}
               activeOpacity={0.8}
             >
-              <Ionicons name="mic-outline" size={18} color={colors.white} />
-              <Text style={styles.voiceActionText}>Start Recording</Text>
+              <Ionicons name="mic-outline" size={18} color={'#FFFFFF'} />
+              <Text style={styles.voiceActionText}>Start</Text>
             </TouchableOpacity>
             <TouchableOpacity
-              style={[styles.voiceActionBtn, !isRecording && styles.voiceBtnDisabled]}
+              style={[styles.voiceActionBtn, !isRecording ? styles.voiceBtnDisabled : { backgroundColor: colors.error }]}
               onPress={stopRecording}
               disabled={!isRecording || isProcessingSpeech}
               activeOpacity={0.8}
             >
-              <Ionicons name="stop-outline" size={18} color={colors.white} />
-              <Text style={styles.voiceActionText}>Stop Recording</Text>
+              <Ionicons name="stop-outline" size={18} color={'#FFFFFF'} />
+              <Text style={styles.voiceActionText}>Stop</Text>
             </TouchableOpacity>
           </View>
           {isRecording ? <Text style={styles.recordingText}>Recording in progress...</Text> : null}
           {!!heardPhrase ? <Text style={styles.voiceHeard}>Recognized: {heardPhrase}</Text> : null}
-          {!heardPhrase && !isRecording ? (
-            <Text style={styles.voiceHint}>Your recognized speech text will appear here.</Text>
-          ) : null}
-        </Card>
+        </View>
 
-        <Card style={styles.tipCard}>
-          <View style={styles.tipRow}>
-            <View style={styles.tipIconBg}>
-              <Ionicons name="bulb-outline" size={24} color="#B45309" />
+        {/* Quick Tip */}
+        <View style={styles.card}>
+          <View style={styles.featureRow}>
+            <View style={[styles.featureIconBg, { backgroundColor: '#FFF3E0' }]}>
+              <Ionicons name="bulb-outline" size={24} color="#FF9800" />
             </View>
-            <Text style={styles.tipTitle}>Quick Tip</Text>
+            <View style={styles.featureContent}>
+              <Text style={styles.cardTitle}>Quick Tip</Text>
+              <Text style={[styles.cardSubtitle, { marginTop: 4 }]}>
+                Triple-tap anywhere to quickly access emergency features.
+              </Text>
+            </View>
           </View>
-          <Text style={styles.tipText}>
-            Triple-tap anywhere on the screen to quickly access emergency features
-          </Text>
-        </Card>
+        </View>
+
       </ScrollView>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: colors.backgroundDark },
+  safe: { flex: 1, backgroundColor: '#F5F7FA' },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 20,
-    paddingVertical: 16,
-    backgroundColor: colors.backgroundDark,
+    paddingVertical: 15,
   },
   brand: {
     fontSize: 24,
-    fontWeight: '700',
-    color: colors.white,
+    fontWeight: 'bold',
+    color: colors.primary,
   },
   tagline: {
     fontSize: 14,
-    color: colors.textLight,
+    color: colors.textSecondary,
     marginTop: 2,
   },
-  iconButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 12,
-    backgroundColor: colors.cardDark,
-    alignItems: 'center',
-    justifyContent: 'center',
+  profileButton: {
+    padding: 4,
   },
   scroll: { flex: 1 },
-  scrollContent: { paddingBottom: 32 },
-  welcomeCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 8,
+  scrollContent: { padding: 20, paddingBottom: 40 },
+  welcomeSection: {
+    marginBottom: 25,
   },
-  welcomeRow: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  avatar: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 14,
-  },
-  welcomeText: { flex: 1 },
   welcomeTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: colors.white,
+    fontSize: 18,
+    color: colors.textSecondary,
+    fontWeight: '500',
   },
   welcomeName: {
-    fontSize: 14,
-    color: colors.textLight,
-    marginTop: 2,
+    fontSize: 28,
+    fontWeight: 'bold',
+    color: colors.textPrimary,
+    marginTop: 4,
   },
-  shieldIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: 'rgba(255,255,255,0.2)',
+  sectionHeading: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: colors.textPrimary,
+    marginBottom: 15,
+    marginTop: 10,
+  },
+  gridContainer: {
+    flexDirection: 'row',
+    gap: 15,
+    marginBottom: 25,
+  },
+  gridCardWrapper: {
+    flex: 1,
+  },
+  toolCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 15,
+    padding: 20,
+    alignItems: 'center',
+    elevation: 3,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+  },
+  toolIconBg: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
     alignItems: 'center',
     justifyContent: 'center',
+    marginBottom: 15,
   },
-  sectionTitle: {
+  toolTitle: {
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: 'bold',
     color: colors.textPrimary,
-    marginBottom: 8,
+    marginBottom: 4,
+  },
+  toolSubtitle: {
+    fontSize: 13,
+    color: colors.textSecondary,
+  },
+  card: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 15,
+    padding: 20,
+    marginBottom: 15,
+    elevation: 3,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+  },
+  emergencyCard: {
+    backgroundColor: colors.emergency,
+  },
+  cardTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: colors.textPrimary,
+  },
+  cardSubtitle: {
+    fontSize: 14,
+    color: colors.textSecondary,
+    lineHeight: 20,
   },
   statusRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    marginBottom: 12,
   },
   safeBadge: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
+    backgroundColor: '#E8F5E9',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
   },
   safeDot: {
     width: 8,
@@ -332,121 +363,81 @@ const styles = StyleSheet.create({
   },
   safeText: {
     fontSize: 14,
-    color: colors.textSecondary,
-    fontWeight: '500',
+    color: colors.safeZone,
+    fontWeight: 'bold',
   },
   locationRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    marginBottom: 4,
+    marginBottom: 8,
   },
   locationText: {
-    fontSize: 16,
-    fontWeight: '600',
+    fontSize: 15,
+    fontWeight: '500',
     color: colors.textPrimary,
     flex: 1,
   },
   updated: {
     fontSize: 12,
-    color: colors.textLight,
+    color: '#AAAAAA',
   },
-  featureCard: {
+  featureRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginHorizontal: 20,
-    marginVertical: 8,
   },
-  emergencyCard: {
-    backgroundColor: colors.emergency,
-  },
-  featureIcon: {
+  featureIconBg: {
     width: 48,
     height: 48,
     borderRadius: 12,
-    backgroundColor: 'rgba(255,255,255,0.2)',
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: 14,
+    marginRight: 15,
   },
-  featureContent: { flex: 1 },
-  featureTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: colors.white,
+  featureContent: {
+    flex: 1,
   },
-  featureSubtitle: {
-    fontSize: 14,
-    color: colors.textLight,
-    marginTop: 2,
-  },
-  tipCard: {
-    marginTop: 8,
-  },
-  tipRow: {
+  voiceControls: {
+    marginTop: 15,
     flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 8,
     gap: 10,
-  },
-  tipIconBg: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: colors.cardLight,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  tipTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: colors.textPrimary,
-  },
-  tipText: {
-    fontSize: 14,
-    color: colors.textSecondary,
-    lineHeight: 20,
   },
   voiceActionBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    borderRadius: 10,
-    backgroundColor: colors.primary,
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: 12,
+    flex: 1,
     justifyContent: 'center',
   },
   voiceBtnActive: {
     backgroundColor: colors.emergency,
   },
   voiceBtnDisabled: {
-    opacity: 0.5,
-  },
-  voiceControls: {
-    marginTop: 10,
-    flexDirection: 'row',
-    gap: 10,
+    backgroundColor: '#E0E0E0',
   },
   voiceActionText: {
-    color: colors.white,
-    fontSize: 13,
-    fontWeight: '600',
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: 'bold',
   },
   recordingText: {
-    marginTop: 8,
+    marginTop: 12,
     color: colors.emergency,
     fontSize: 13,
-    fontWeight: '600',
+    fontWeight: 'bold',
   },
   voiceHeard: {
-    marginTop: 8,
+    marginTop: 12,
     color: colors.textSecondary,
-    fontSize: 13,
+    fontSize: 14,
+    fontStyle: 'italic',
   },
-  voiceHint: {
-    marginTop: 8,
-    color: colors.textLight,
-    fontSize: 12,
+  tipRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
   },
 });

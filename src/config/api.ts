@@ -1,6 +1,6 @@
 import { Platform } from 'react-native';
 
-const API_HOST = '192.168.1.128';
+const API_HOST = '192.168.1.74';
 const API_PORT = '8000';
 
 export const API_BASE_URL = `http://${API_HOST}:${API_PORT}`;
@@ -21,6 +21,7 @@ const getFallbackBaseUrls = () => {
 
   return [API_BASE_URL, ...fallbackUrls];
 };
+
 
 const fetchWithTimeout = async (url: string, options: RequestInit, timeoutMs = 12000) => {
   const controller = new AbortController();

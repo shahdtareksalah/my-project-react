@@ -8,8 +8,8 @@ import { EmergencyContactScreen } from '../screens/EmergencyContactScreen';
 import { HomeScreen } from '../screens/HomeScreen';
 import { ChildLocationScreen } from '../screens/ChildLocationScreen';
 import { EmergencyScreen } from '../screens/EmergencyScreen';
-import { CameraAssistanceScreen } from '../screens/CameraAssistanceScreen';
-import { CameraScreen } from '../screens/CameraScreen';
+import { VideoAssistanceScreen } from '../screens/VideoAssistanceScreen';
+import { VideoScreen } from '../screens/VideoScreen';
 import { ParentDashboardScreen } from '../screens/ParentDashboardScreen';
 import { ParentDashboardLocationScreen } from '../screens/ParentDashboardLocationScreen';
 import { AdminDashboardScreen } from '../screens/AdminDashboardScreen';
@@ -70,12 +70,12 @@ export function AppNavigator() {
         <Stack.Screen name="Emergency" component={EmergencyScreen} />
         <Stack.Screen
           name="Camera"
-          component={CameraScreen}
+          component={VideoScreen}
           options={{ contentStyle: { backgroundColor: colors.primaryDark } }}
         />
         <Stack.Screen
           name="CameraAssistance"
-          component={CameraAssistanceScreen}
+          component={VideoAssistanceScreen}
           options={{ contentStyle: { backgroundColor: colors.primaryDark } }}
         />
         <Stack.Screen

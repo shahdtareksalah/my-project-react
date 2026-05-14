@@ -19,7 +19,7 @@
         "expo-camera",
         {
           "cameraPermission": "Allow SmartAid to access your camera for AI-powered assistance.",
-          "microphonePermission": "Allow SmartAid to access your microphone for video."
+          "microphonePermission": "Allow SmartAid to access your microphone for video and voice features."
         }
       ],
       [
@@ -28,12 +28,7 @@
           "locationWhenInUsePermission": "Allow SmartAid to access your location for safety features."
         }
       ],
-      [
-        "expo-av",
-        {
-          "microphonePermission": "Allow SmartAid to access your microphone for voice commands."
-        }
-      ],
+      "expo-av",
       "expo-notifications",
       "expo-font"
     ],
@@ -44,22 +39,17 @@
       "infoPlist": {
         "NSCameraUsageDescription": "Allow SmartAid to access your camera for AI-powered assistance.",
         "NSMicrophoneUsageDescription": "Allow SmartAid to access your microphone for voice and video features.",
-        "NSLocationWhenInUseUsageDescription": "Allow SmartAid to access your location for safety features.",
-        "NSAppTransportSecurity": {
-          "NSAllowsArbitraryLoads": true
-        }
+        "NSLocationWhenInUseUsageDescription": "Allow SmartAid to access your location for safety features."
       }
     },
 
     "android": {
-      "permissions": ["RECORD_AUDIO"],  
+      "package": "com.anonymous.smartaid",
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
       "edgeToEdgeEnabled": true,
-      "predictiveBackGestureEnabled": false,
-      "package": "com.anonymous.smartaid",
       "usesCleartextTraffic": true
     },
 

@@ -32,6 +32,7 @@ export function ParentDashboardScreen({ navigation }: any) {
 
   const [focusCenter, setFocusCenter] = useState<{ latitude: number; longitude: number } | null>(null);
   const [mapReady, setMapReady] = useState(false);
+  const [callingChildId, setCallingChildId] = useState<string | null>(null);
 
   useEffect(() => {
     const task = InteractionManager.runAfterInteractions(() => {
@@ -82,6 +83,30 @@ export function ParentDashboardScreen({ navigation }: any) {
     (safeZones.length > 0
       ? { latitude: safeZones[0].latitude, longitude: safeZones[0].longitude }
       : DEFAULT_CENTER);
+
+  const startCall = (childId: string, childName?: string) => {
+    setCallingChildId(childId);
+    navigation.navigate('AudioCall', {
+      childId,
+      callerName: childName,
+      isIncoming: false,
+    });
+    setCallingChildId(null);
+  };
+
+  const startQuickCall = () => {
+    if (children.length === 0) {
+      Alert.alert('No Linked Children', 'Link a child account before starting a call.');
+      return;
+    }
+
+    if (children.length > 1) {
+      Alert.alert('Choose a Child', 'Use the call button beside the child you want to call.');
+      return;
+    }
+
+    void startCall(children[0].id, children[0].displayName);
+  };
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
@@ -162,19 +187,33 @@ export function ParentDashboardScreen({ navigation }: any) {
                   </View>
                 </View>
 
-                {/* Action */}
-                <TouchableOpacity
-                  style={styles.viewBtn}
-                  onPress={() =>
-                    navigation.navigate('ParentDashboardLocation', {
-                      dependentId: child.id,
-                      dependentName: child.displayName,
-                    })
-                  }
-                >
-                  <Ionicons name="location-sharp" size={16} color={colors.white} />
-                  <Text style={styles.viewBtnText}>View</Text>
-                </TouchableOpacity>
+                {/* Actions */}
+                <View style={styles.childActions}>
+                  <TouchableOpacity
+                    style={styles.iconActionBtn}
+                    disabled={callingChildId === child.id}
+                    onPress={() => void startCall(child.id, child.displayName)}
+                  >
+                    {callingChildId === child.id ? (
+                      <ActivityIndicator size="small" color={colors.white} />
+                    ) : (
+                      <Ionicons name="call" size={16} color={colors.white} />
+                    )}
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={styles.viewBtn}
+                    onPress={() =>
+                      navigation.navigate('ParentDashboardLocation', {
+                        dependentId: child.id,
+                        dependentName: child.displayName,
+                      })
+                    }
+                  >
+                    <Ionicons name="location-sharp" size={16} color={colors.white} />
+                    <Text style={styles.viewBtnText}>View</Text>
+                  </TouchableOpacity>
+                </View>
               </View>
             );
           })
@@ -221,7 +260,7 @@ export function ParentDashboardScreen({ navigation }: any) {
               <Ionicons name="person-add" size={22} color={colors.white} />
               <Text style={styles.quickTileText}>Link New Child</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={[styles.quickTile, styles.quickTilePrimary]} onPress={() => { }}>
+            <TouchableOpacity style={[styles.quickTile, styles.quickTilePrimary]} onPress={startQuickCall}>
               <Ionicons name="call" size={22} color={colors.white} />
               <Text style={styles.quickTileText}>Call Child</Text>
             </TouchableOpacity>
@@ -324,6 +363,19 @@ const styles = StyleSheet.create({
   trackingOff: { backgroundColor: 'rgba(248,113,113,0.1)' },
   trackingDot: { width: 5, height: 5, borderRadius: 3 },
   trackingText: { fontSize: 11, fontWeight: '600' },
+  childActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  iconActionBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    backgroundColor: colors.success,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   viewBtn: {
     flexDirection: 'row', alignItems: 'center', gap: 5,
     backgroundColor: colors.primary,

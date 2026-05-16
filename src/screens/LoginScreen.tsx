@@ -16,6 +16,11 @@ import { Button } from '../components/Button';
 import { colors } from '../theme/colors';
 import { apiPost, saveTokens } from '../api/client';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import {
+  buildPushTokenBody,
+  registerForPushNotifications,
+  syncPushTokenToBackend,
+} from '../services/notificationService';
 
 export function LoginScreen({ navigation }: any) {
   const [email, setEmail] = useState('');
@@ -30,10 +35,16 @@ export function LoginScreen({ navigation }: any) {
 
     setLoading(true);
     try {
-      const { response, data, url } = await apiPost('/users/login/', {
-        email,
-        password,
-      }, false);
+      const pushRegistration = await registerForPushNotifications();
+      const { response, data, url } = await apiPost(
+        '/users/login/',
+        {
+          email,
+          password,
+          ...buildPushTokenBody(pushRegistration.token),
+        },
+        false,
+      );
       console.log('Sending request to:', url);
 
       if (response.ok) {
@@ -41,6 +52,12 @@ export function LoginScreen({ navigation }: any) {
           const tokenPayload = data as { access?: string; refresh?: string };
           await saveTokens({ access: tokenPayload.access, refresh: tokenPayload.refresh });
           await AsyncStorage.setItem('user_profile', JSON.stringify(data));
+
+          // Sync push token to backend (native FCM for firebase_admin)
+          const pushSync = await syncPushTokenToBackend();
+          if (!pushSync.success) {
+            console.warn('[Login] Push token sync failed:', pushSync.message);
+          }
         }
         navigation.replace('Home');
         return;

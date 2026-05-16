@@ -7,60 +7,75 @@
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
     "newArchEnabled": false,
-
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
-
     "plugins": [
       [
-        "expo-camera",
+        "expo-build-properties",
         {
-          "cameraPermission": "Allow SmartAid to access your camera for AI-powered assistance.",
-          "microphonePermission": "Allow SmartAid to access your microphone for video and voice features."
+          "android": {
+            "compileSdkVersion": 35,
+            "targetSdkVersion": 34,
+            "minSdkVersion": 24,
+            "enableDangerousReferenceCleaning": true
+          }
         }
       ],
       [
-        "expo-location",
+        "expo-notifications",
         {
-          "locationWhenInUsePermission": "Allow SmartAid to access your location for safety features."
+          "icon": "./assets/notification-icon.png",
+          "color": "#ffffff",
+          "mode": "production"
         }
       ],
-      "expo-av",
-      "expo-notifications",
-      "expo-font"
+      "expo-location",
+      "expo-camera"
     ],
-
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.anonymous.smartaid",
       "infoPlist": {
         "NSCameraUsageDescription": "Allow SmartAid to access your camera for AI-powered assistance.",
-        "NSMicrophoneUsageDescription": "Allow SmartAid to access your microphone for voice and video features.",
-        "NSLocationWhenInUseUsageDescription": "Allow SmartAid to access your location for safety features."
+        "NSMicrophoneUsageDescription": "Allow SmartAid to access your microphone for audio calls and voice features.",
+        "NSLocationWhenInUseUsageDescription": "Allow SmartAid to access your location for safety features.",
+        "UIBackgroundModes": [
+          "remote-notification"
+        ]
       }
     },
-
     "android": {
       "package": "com.anonymous.smartaid",
+      "googleServicesFile": "./google-services.json",
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
+      "permissions": [
+        "android.permission.RECORD_AUDIO",
+        "android.permission.MODIFY_AUDIO_SETTINGS",
+        "android.permission.POST_NOTIFICATIONS",
+        "android.permission.VIBRATE",
+        "android.permission.RECEIVE_BOOT_COMPLETED",
+        "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.ACCESS_FINE_LOCATION",
+        "android.permission.CAMERA"
+      ],
       "edgeToEdgeEnabled": true,
       "usesCleartextTraffic": true
     },
-
     "web": {
       "favicon": "./assets/favicon.png"
     },
-
     "extra": {
+      "agoraAppId": "0dc49feab67c4c67b946bae72254a9af",
       "eas": {
-        "projectId": "6ff7e8fe-7c9b-4cc2-a467-ccef35cbd19b"
+        "projectId": "0f32d99e-8ea1-4138-abe6-43f7cda1177c"
       }
-    }
+    },
+    "owner": "smartaid123"
   }
 }

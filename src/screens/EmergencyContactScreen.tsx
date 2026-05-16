@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -13,12 +13,17 @@ import { Input } from '../components/Input';
 import { Button } from '../components/Button';
 import { colors } from '../theme/colors';
 import { useSafety } from '../context/SafetyContext';
+import { syncPushTokenToBackend } from '../services/notificationService';
 
 export function EmergencyContactScreen({ navigation }: any) {
   const [fullName, setFullName] = useState('');
   const [phone, setPhone] = useState('');
   const [relationship, setRelationship] = useState('');
   const { setEmergencyPhone } = useSafety();
+
+  useEffect(() => {
+    void syncPushTokenToBackend();
+  }, []);
 
   return (
     <SafeAreaView style={styles.safe}>

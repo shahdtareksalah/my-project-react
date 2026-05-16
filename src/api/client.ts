@@ -1,6 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-export const API_BASE_URL = 'http://192.168.1.74:8000';
+export const API_BASE_URL = 'http://192.168.1.16:8000';
 export const API_PATHS = {
   read: '/ai/read/',
   describe: '/ai/describe/',

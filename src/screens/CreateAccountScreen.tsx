@@ -17,6 +17,11 @@ import { Input } from '../components/Input';
 import { Button } from '../components/Button';
 import { colors } from '../theme/colors';
 import { apiPost, saveTokens } from '../api/client';
+import {
+  buildPushTokenBody,
+  registerForPushNotifications,
+  syncPushTokenToBackend,
+} from '../services/notificationService';
 
 export function CreateAccountScreen({ navigation }: any) {
   const [fullName, setFullName] = useState('');
@@ -48,19 +53,34 @@ export function CreateAccountScreen({ navigation }: any) {
 
     setLoading(true);
     try {
-      const { response, data, url } = await apiPost('/users/register/', {
-        full_name: fullName,
-        email,
-        password,
-        phone_number: phone,
-        role,
-      }, false);
+      const pushRegistration = await registerForPushNotifications();
+      const { response, data, url } = await apiPost(
+        '/users/register/',
+        {
+          full_name: fullName,
+          email,
+          password,
+          phone_number: phone,
+          role,
+          ...buildPushTokenBody(pushRegistration.token),
+        },
+        false,
+      );
       console.log('Sending request to:', url);
 
       if (response.ok) {
         if (data && typeof data === 'object') {
           const tokenPayload = data as { access?: string; refresh?: string };
           await saveTokens({ access: tokenPayload.access, refresh: tokenPayload.refresh });
+
+          const pushSync = await syncPushTokenToBackend();
+          if (!pushSync.success) {
+            Alert.alert(
+              'Push notifications',
+              pushSync.message ||
+                'Could not save your device token for incoming calls. Allow notifications in Settings, then sign in again.',
+            );
+          }
         }
         if (role === 'parent') {
           navigation.navigate('LinkChild');

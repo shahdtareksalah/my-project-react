@@ -18,7 +18,10 @@ import { OCRScreen } from '../screens/OCRScreen';
 import { LinkChildScreen } from '../screens/LinkChildScreen';
 import { CreateSafeZoneScreen } from '../screens/CreateSafeZoneScreen';
 import { AlertHistoryScreen } from '../screens/AlertHistoryScreen';
+import { AudioCallScreen } from '../screens/AudioCallScreen';
 import { colors } from '../theme/colors';
+import { navigationRef } from './navigationRef';
+import type { AudioCallRouteParams } from '../types/call';
 
 export type RootStackParamList = {
   Login: undefined;
@@ -32,19 +35,28 @@ export type RootStackParamList = {
   CameraAssistance: undefined;
   OCR: { autoRead?: boolean } | undefined;
   ParentDashboard: undefined;
-  ParentDashboardLocation: undefined;
+  ParentDashboardLocation: { dependentId: string; dependentName: string };
   AdminDashboard: undefined;
   Settings: undefined;
   LinkChild: undefined;
   AlertHistory: undefined;
-  CreateSafeZone: { dependentId: string; dependentName?: string };
+  CreateSafeZone: {
+    dependentId: string;
+    dependentName?: string;
+    editMode?: boolean;
+    zoneId?: string;
+    zoneName?: string;
+    radius?: number;
+    selectedPoint?: { latitude: number; longitude: number };
+  };
+  AudioCall: AudioCallRouteParams | undefined;
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
 export function AppNavigator() {
   return (
-    <NavigationContainer>
+    <NavigationContainer ref={navigationRef}>
       <Stack.Navigator
         initialRouteName="Login"
         screenOptions={{
@@ -116,6 +128,11 @@ export function AppNavigator() {
         <Stack.Screen
           name="AlertHistory"
           component={AlertHistoryScreen}
+          options={{ contentStyle: { backgroundColor: colors.backgroundDark } }}
+        />
+        <Stack.Screen
+          name="AudioCall"
+          component={AudioCallScreen}
           options={{ contentStyle: { backgroundColor: colors.backgroundDark } }}
         />
       </Stack.Navigator>

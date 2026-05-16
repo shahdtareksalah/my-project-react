@@ -6,9 +6,10 @@ import Voice, { SpeechEndEvent, SpeechErrorEvent, SpeechResultsEvent } from '@re
 import { colors } from '../theme/colors';
 import { useSafety } from '../context/SafetyContext';
 import { AuthContext } from '../context/AuthContext';
+import { syncPushTokenToBackend } from '../services/notificationService';
 
 export function HomeScreen({ navigation }: any) {
-  const { sendEmergency } = useSafety();
+  const { sendEmergency, linkedChildren, fetchLinkedChildren } = useSafety();
   const auth = useContext(AuthContext);
   const username = auth?.user?.username || 'Guest';
 
@@ -20,6 +21,34 @@ export function HomeScreen({ navigation }: any) {
     () => 'Voice commands: "Open camera", "Read text", "Send help".',
     []
   );
+
+  // Runs once on mount. Token sync is also called after login in LoginScreen.
+  // The push-token refresh listener in CallContext handles rotation.
+  useEffect(() => {
+    void fetchLinkedChildren().catch(() => undefined);
+    void syncPushTokenToBackend();
+  }, []);
+
+  const startQuickCall = () => {
+    if (linkedChildren.length === 0) {
+      Alert.alert('No Linked Child', 'Link a child account from the parent dashboard before calling.');
+      return;
+    }
+
+    if (linkedChildren.length > 1) {
+      Alert.alert(
+        'Choose a Child',
+        'Multiple children are linked. Open the Parent Dashboard to call a specific child.',
+      );
+      return;
+    }
+
+    navigation.navigate('AudioCall', {
+      childId: linkedChildren[0].id,
+      callerName: linkedChildren[0].displayName,
+      isIncoming: false,
+    });
+  };
 
   useEffect(() => {
     Voice.onSpeechResults = (event: SpeechResultsEvent) => {
@@ -162,6 +191,21 @@ export function HomeScreen({ navigation }: any) {
               <View style={styles.featureContent}>
                 <Text style={styles.cardTitle}>Child Location</Text>
                 <Text style={styles.cardSubtitle}>Track and monitor safety</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={24} color={'#AAAAAA'} />
+            </View>
+          </View>
+        </TouchableOpacity>
+
+        <TouchableOpacity activeOpacity={0.8} onPress={startQuickCall}>
+          <View style={styles.card}>
+            <View style={styles.featureRow}>
+              <View style={[styles.featureIconBg, { backgroundColor: '#E3F2FD' }]}>
+                <Ionicons name="call-outline" size={24} color="#1976D2" />
+              </View>
+              <View style={styles.featureContent}>
+                <Text style={styles.cardTitle}>Call Child</Text>
+                <Text style={styles.cardSubtitle}>Start an audio call with your linked child</Text>
               </View>
               <Ionicons name="chevron-forward" size={24} color={'#AAAAAA'} />
             </View>

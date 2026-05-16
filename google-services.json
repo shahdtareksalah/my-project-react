@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "1032362372731",
+    "project_id": "testsmartaid",
+    "storage_bucket": "testsmartaid.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1032362372731:android:a412e6a2f19dca3528fcde",
+        "android_client_info": {
+          "package_name": "com.anonymous.smartaid"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCGyyUgvOL7j-5Nln6NN3UQtNmPADQmw6k"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

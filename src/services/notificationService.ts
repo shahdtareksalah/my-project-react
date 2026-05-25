@@ -159,7 +159,7 @@ export function parseIncomingCallPayload(data: unknown): IncomingCallPayload | n
     agora_app_id: agoraSession.appId,
     uid: agoraSession.uid,
     caller_id: typeof callerId === 'string' ? callerId : undefined,
-    caller_name: typeof callerName === 'string' && callerName.trim() ? callerName : 'Parent',
+    caller_name: typeof callerName === 'string' && callerName.trim() ? callerName : 'Caller',
   };
 }
 

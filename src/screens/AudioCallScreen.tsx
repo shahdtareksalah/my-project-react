@@ -52,7 +52,7 @@ export function AudioCallScreen({ navigation, route }: any) {
   const [statusText, setStatusText] = useState(
     params.isIncoming ? 'Connected' : params.callId ? 'Ringing...' : 'Calling...',
   );
-  const [displayName, setDisplayName] = useState(params.callerName ?? 'Child');
+  const [displayName, setDisplayName] = useState(params.callerName ?? 'Caller');
 
   const stopRingback = useCallback(async () => {
     try {
@@ -184,10 +184,11 @@ export function AudioCallScreen({ navigation, route }: any) {
       try {
         let session: AgoraSession | null = null;
 
-        if (params.childId && !params.callId) {
+        const targetId = params.receiverId ?? params.childId;
+        if (targetId && !params.callId) {
           setCallState('initiating');
           setStatusText('Calling...');
-          const initiated = await initiateAudioCall(params.childId);
+          const initiated = await initiateAudioCall(targetId);
           callIdRef.current = initiated.call_id;
           session = initiated.agoraSession;
           if (params.callerName) setDisplayName(params.callerName);
@@ -216,7 +217,7 @@ export function AudioCallScreen({ navigation, route }: any) {
 
         if (!params.isIncoming && mounted) {
           timeoutRef.current = setTimeout(() => {
-            void finishCall('timeout', 'Child Unavailable');
+            void finishCall('timeout', 'User Unavailable');
           }, CALL_TIMEOUT_MS);
         }
       } catch (error: any) {
@@ -262,7 +263,7 @@ export function AudioCallScreen({ navigation, route }: any) {
       }
 
       if (event.type === 'call_missed') {
-        void finishCall(event.reason || 'missed', 'Child did not answer');
+        void finishCall(event.reason || 'missed', 'User did not answer');
       }
     });
 

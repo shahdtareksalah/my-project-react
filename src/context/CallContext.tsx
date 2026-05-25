@@ -1,4 +1,5 @@
-import React, { createContext, ReactNode, useCallback, useContext, useEffect, useState } from 'react';
+import React, { createContext, ReactNode, useCallback, useContext, useEffect, useRef, useState } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { IncomingCallPayload } from '../types/call';
 import { IncomingCallModal } from '../components/IncomingCallModal';
 import {
@@ -25,10 +26,31 @@ export function CallProvider({ children }: { children: ReactNode }) {
   const [incomingCall, setIncomingCall] = useState<IncomingCallPayload | null>(null);
   const [accepting, setAccepting] = useState(false);
 
+  // Wrap setIncomingCall to skip if the call was initiated by the current user
+  const filteredSetIncomingCall = useCallback((payload: IncomingCallPayload | null) => {
+    if (!payload) {
+      setIncomingCall(null);
+      return;
+    }
+    // Read current user ID each time (login may happen after mount)
+    AsyncStorage.getItem('user_profile').then((raw) => {
+      if (raw) {
+        try {
+          const profile = JSON.parse(raw);
+          const currentUserId = profile?.user?.id;
+          if (currentUserId && payload.caller_id === currentUserId) {
+            return; // Ignore — our own call
+          }
+        } catch { /* ignore */ }
+      }
+      setIncomingCall(payload);
+    });
+  }, []);
+
   useEffect(() => {
-    setIncomingCallDispatch(setIncomingCall);
+    setIncomingCallDispatch(filteredSetIncomingCall);
     void registerIncomingCallBackgroundTask();
-    const removeIncomingCallListeners = addIncomingCallListeners(setIncomingCall);
+    const removeIncomingCallListeners = addIncomingCallListeners(filteredSetIncomingCall);
     const removeTokenRefreshListener = addPushTokenRefreshListener();
 
     return () => {
@@ -36,7 +58,7 @@ export function CallProvider({ children }: { children: ReactNode }) {
       removeIncomingCallListeners();
       removeTokenRefreshListener();
     };
-  }, []);
+  }, [filteredSetIncomingCall]);
 
   useEffect(() => {
     if (!incomingCall) return undefined;

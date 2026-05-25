@@ -1,6 +1,7 @@
 import React, { createContext, useState, ReactNode } from 'react';
 
 type User = {
+  id: string;
   username: string;
 };
 
@@ -10,12 +11,12 @@ type AuthContextType = {
 };
 
 export const AuthContext = createContext<AuthContextType>({
-  user: { username: 'Sarah Johnson' },
+  user: null,
   setUser: () => {},
 });
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<User | null>({ username: 'Sarah Johnson' });
+  const [user, setUser] = useState<User | null>(null);
   return (
     <AuthContext.Provider value={{ user, setUser }}>
       {children}

@@ -32,21 +32,21 @@ function getApiErrorMessage(data: unknown, fallback: string) {
   return fallback;
 }
 
-export function LinkChildScreen({ navigation }: any) {
-  const [childEmail, setChildEmail] = useState('');
+export function LinkUserScreen({ navigation }: any) {
+  const [userEmail, setUserEmail] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const navigateToParentDashboard = () => {
+  const navigateToDashboard = () => {
     navigation.reset({
       index: 0,
-      routes: [{ name: 'ParentDashboard' }],
+      routes: [{ name: 'Dashboard' }],
     });
   };
 
-  const handleLinkChild = async () => {
-    const trimmedEmail = childEmail.trim();
+  const handleLinkUser = async () => {
+    const trimmedEmail = userEmail.trim();
     if (!trimmedEmail) {
-      Alert.alert('Missing Email', "Please enter your child's email.");
+      Alert.alert('Missing Email', "Please enter the user's email.");
       return;
     }
 
@@ -57,8 +57,8 @@ export function LinkChildScreen({ navigation }: any) {
       });
 
       if (response.ok) {
-        Alert.alert('Success', 'Child linked successfully.');
-        navigateToParentDashboard();
+        Alert.alert('Success', 'User linked successfully.');
+        navigateToDashboard();
         return;
       }
 
@@ -70,7 +70,7 @@ export function LinkChildScreen({ navigation }: any) {
       });
       const errorMessage = getApiErrorMessage(
         data,
-        'Unable to link child. Please verify the email and try again.'
+        'Unable to link user. Please verify the email and try again.'
       );
       Alert.alert('Link Failed', errorMessage);
     } catch (error: any) {
@@ -101,26 +101,26 @@ export function LinkChildScreen({ navigation }: any) {
               <View style={styles.logo}>
                 <Ionicons name="people-outline" size={32} color={colors.white} />
               </View>
-              <Text style={styles.title}>Link Your Child</Text>
+              <Text style={styles.title}>Link User</Text>
               <Text style={styles.subtitle}>
-                Add your child's registered email to connect location tracking.
+                Add a user's registered email to connect location tracking.
               </Text>
             </View>
 
             <View style={styles.card}>
               <Input
-                label="Child's Email"
-                value={childEmail}
-                onChangeText={setChildEmail}
+                label="User's Email"
+                value={userEmail}
+                onChangeText={setUserEmail}
                 placeholder="example@mail.com"
                 keyboardType="email-address"
                 icon={<Ionicons name="mail-outline" size={20} color={colors.textPrimary} />}
               />
 
-              <Button title="Link" onPress={handleLinkChild} loading={loading} style={styles.linkButton} />
+              <Button title="Link" onPress={handleLinkUser} loading={loading} style={styles.linkButton} />
               <Button
                 title="Skip for now"
-                onPress={navigateToParentDashboard}
+                onPress={navigateToDashboard}
                 variant="outline"
                 disabled={loading}
               />

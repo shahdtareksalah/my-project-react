@@ -1,6 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-export const API_BASE_URL = 'http://192.168.1.16:8000';
+export const API_BASE_URL = 'http://192.168.1.17:8000';
 export const API_PATHS = {
   read: '/ai/read/',
   describe: '/ai/describe/',
@@ -69,6 +69,7 @@ async function refreshAccessToken() {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
+      'ngrok-skip-browser-warning': 'true',
     },
     body: JSON.stringify({ refresh }),
   });
@@ -90,7 +91,8 @@ export async function apiRequest(path: string, options: RequestOptions = {}) {
   const { access } = await getStoredTokens();
 
   const execute = async (token: string | null) => {
-    const headers: Record<string, string> = isFormData ? { 'Content-Type': 'multipart/form-data' } : { 'Content-Type': 'application/json' };
+    const headers: Record<string, string> = { 'ngrok-skip-browser-warning': 'true' };
+    if (!isFormData) headers['Content-Type'] = 'application/json';
     if (customHeaders) {
       Object.assign(headers, customHeaders);
     } if (requiresAuth && token) {

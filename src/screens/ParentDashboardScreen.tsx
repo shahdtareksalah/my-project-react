@@ -22,7 +22,7 @@ function parseChildSubtitle(subtitle: string | undefined) {
   return { email, trackingOn };
 }
 
-export function ParentDashboardScreen({ navigation }: any) {
+export function DashboardScreen({ navigation }: any) {
   const {
     linkedChildren,
     fetchLinkedChildren,
@@ -96,12 +96,12 @@ export function ParentDashboardScreen({ navigation }: any) {
 
   const startQuickCall = () => {
     if (children.length === 0) {
-      Alert.alert('No Linked Children', 'Link a child account before starting a call.');
+      Alert.alert('No Connected Users', 'Link a user account before starting a call.');
       return;
     }
 
     if (children.length > 1) {
-      Alert.alert('Choose a Child', 'Use the call button beside the child you want to call.');
+      Alert.alert('Choose a User', 'Use the call button beside the user you want to call.');
       return;
     }
 
@@ -117,7 +117,7 @@ export function ParentDashboardScreen({ navigation }: any) {
         </TouchableOpacity>
         <View style={styles.headerCenter}>
           <Text style={styles.welcomeSmall}>Welcome back</Text>
-          <Text style={styles.headerTitle}>Parent Dashboard</Text>
+          <Text style={styles.headerTitle}>Dashboard</Text>
         </View>
         <TouchableOpacity style={styles.headerBtn} onPress={() => navigation.navigate('AlertHistory')}>
           <Ionicons name="notifications-outline" size={22} color={colors.white} />
@@ -130,7 +130,7 @@ export function ParentDashboardScreen({ navigation }: any) {
         <View style={styles.mapCard}>
           <View style={styles.mapTitleRow}>
             <Ionicons name="map" size={16} color={colors.primary} />
-            <Text style={styles.mapTitle}>Children Map</Text>
+            <Text style={styles.mapTitle}>Connected Users Map</Text>
             {childMarkers.length > 0 && (
               <View style={styles.onlinePill}>
                 <View style={styles.onlineDot} />
@@ -156,14 +156,14 @@ export function ParentDashboardScreen({ navigation }: any) {
         </View>
 
         {/* ── Children list ── */}
-        <Text style={styles.listHeading}>Linked Children</Text>
+        <Text style={styles.listHeading}>Connected Users</Text>
 
         {children.length === 0 ? (
           <View style={styles.emptyCard}>
             <Ionicons name="people-outline" size={40} color={colors.textLight} />
-            <Text style={styles.emptyTitle}>No linked children yet</Text>
-            <Text style={styles.emptyHint}>Link a child account to start monitoring</Text>
-            <Button title="Link Child" onPress={() => navigation.navigate('LinkChild')} style={styles.emptyBtn} />
+            <Text style={styles.emptyTitle}>No connected users yet</Text>
+            <Text style={styles.emptyHint}>Link a user account to get started</Text>
+            <Button title="Link User" onPress={() => navigation.navigate('LinkUser')} style={styles.emptyBtn} />
           </View>
         ) : (
           children.map((child) => {
@@ -256,13 +256,13 @@ export function ParentDashboardScreen({ navigation }: any) {
         <View style={styles.quickSection}>
           <Text style={styles.quickTitle}>Quick Actions</Text>
           <View style={styles.quickRow}>
-            <TouchableOpacity style={[styles.quickTile, styles.quickTilePrimary]} onPress={() => navigation.navigate('LinkChild')}>
+            <TouchableOpacity style={[styles.quickTile, styles.quickTilePrimary]} onPress={() => navigation.navigate('LinkUser')}>
               <Ionicons name="person-add" size={22} color={colors.white} />
-              <Text style={styles.quickTileText}>Link New Child</Text>
+              <Text style={styles.quickTileText}>Link User</Text>
             </TouchableOpacity>
             <TouchableOpacity style={[styles.quickTile, styles.quickTilePrimary]} onPress={startQuickCall}>
               <Ionicons name="call" size={22} color={colors.white} />
-              <Text style={styles.quickTileText}>Call Child</Text>
+              <Text style={styles.quickTileText}>Call</Text>
             </TouchableOpacity>
           </View>
         </View>

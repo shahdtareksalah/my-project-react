@@ -104,7 +104,7 @@ export function IncomingCallModal({ call, accepting, onAccept, onDecline }: Inco
         style={styles.fullScreen}
         onPress={handleScreenPress}
         accessibilityRole="button"
-        accessibilityLabel="Incoming call from Parent. Double tap anywhere to answer."
+        accessibilityLabel="Incoming call from Caller. Double tap anywhere to answer."
         accessibilityHint="Double tap anywhere on the screen to answer the call"
       >
         <View style={styles.content} pointerEvents="box-none">
@@ -113,7 +113,7 @@ export function IncomingCallModal({ call, accepting, onAccept, onDecline }: Inco
           </View>
           <Text style={styles.label}>EMERGENCY CALL</Text>
           <Text style={styles.caller} numberOfLines={2}>
-            {call?.caller_name ?? 'Parent'}
+            {call?.caller_name ?? 'Caller'}
           </Text>
           <Text style={styles.hint}>Double tap anywhere to answer</Text>
 

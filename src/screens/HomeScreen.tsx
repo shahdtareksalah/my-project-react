@@ -1,17 +1,29 @@
-import React, { useEffect, useMemo, useState, useContext } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Alert, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Voice, { SpeechEndEvent, SpeechErrorEvent, SpeechResultsEvent } from '@react-native-voice/voice';
 import { colors } from '../theme/colors';
 import { useSafety } from '../context/SafetyContext';
-import { AuthContext } from '../context/AuthContext';
 import { syncPushTokenToBackend } from '../services/notificationService';
+import { useNotifications } from '../context/NotificationsContext';
 
 export function HomeScreen({ navigation }: any) {
   const { sendEmergency, linkedChildren, fetchLinkedChildren } = useSafety();
-  const auth = useContext(AuthContext);
-  const username = auth?.user?.username || 'Guest';
+  const { unreadCount } = useNotifications();
+  const [username, setUsername] = useState('Guest');
+
+  useEffect(() => {
+    AsyncStorage.getItem('user_profile').then((raw) => {
+      if (raw) {
+        try {
+          const profile = JSON.parse(raw);
+          setUsername(profile?.user?.full_name || profile?.user?.email || 'Guest');
+        } catch { /* ignore */ }
+      }
+    });
+  }, []);
 
   const [isRecording, setIsRecording] = useState(false);
   const [isProcessingSpeech, setIsProcessingSpeech] = useState(false);
@@ -31,14 +43,14 @@ export function HomeScreen({ navigation }: any) {
 
   const startQuickCall = () => {
     if (linkedChildren.length === 0) {
-      Alert.alert('No Linked Child', 'Link a child account from the parent dashboard before calling.');
+      Alert.alert('No Linked User', 'Link a user account from the dashboard before calling.');
       return;
     }
 
     if (linkedChildren.length > 1) {
       Alert.alert(
-        'Choose a Child',
-        'Multiple children are linked. Open the Parent Dashboard to call a specific child.',
+        'Choose a User',
+        'Multiple users are linked. Open the Dashboard to call a specific user.',
       );
       return;
     }
@@ -124,9 +136,22 @@ export function HomeScreen({ navigation }: any) {
           <Text style={styles.brand}>SmartAid</Text>
           <Text style={styles.tagline}>AI-Powered Assistance</Text>
         </View>
-        <TouchableOpacity style={styles.profileButton} onPress={() => navigation.navigate('Settings')}>
-          <Ionicons name="person-circle-outline" size={38} color={colors.primary} />
-        </TouchableOpacity>
+        <View style={styles.headerRight}>
+          <TouchableOpacity
+            style={styles.notifButton}
+            onPress={() => navigation.navigate('Notifications')}
+          >
+            <Ionicons name="notifications-outline" size={26} color={colors.primary} />
+            {unreadCount > 0 && (
+              <View style={styles.badge}>
+                <Text style={styles.badgeText}>{unreadCount > 99 ? '99+' : unreadCount}</Text>
+              </View>
+            )}
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.profileButton} onPress={() => navigation.navigate('Settings')}>
+            <Ionicons name="person-circle-outline" size={38} color={colors.primary} />
+          </TouchableOpacity>
+        </View>
       </View>
 
       <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
@@ -166,7 +191,7 @@ export function HomeScreen({ navigation }: any) {
 
         <View style={styles.card}>
           <View style={styles.statusRow}>
-            <Text style={styles.cardTitle}>Child Status</Text>
+            <Text style={styles.cardTitle}>User Status</Text>
             <View style={styles.safeBadge}>
               <View style={styles.safeDot} />
               <Text style={styles.safeText}>Safe</Text>
@@ -189,7 +214,7 @@ export function HomeScreen({ navigation }: any) {
                 <Ionicons name="map-outline" size={24} color="#4CAF50" />
               </View>
               <View style={styles.featureContent}>
-                <Text style={styles.cardTitle}>Child Location</Text>
+                <Text style={styles.cardTitle}>User Location</Text>
                 <Text style={styles.cardSubtitle}>Track and monitor safety</Text>
               </View>
               <Ionicons name="chevron-forward" size={24} color={'#AAAAAA'} />
@@ -204,8 +229,8 @@ export function HomeScreen({ navigation }: any) {
                 <Ionicons name="call-outline" size={24} color="#1976D2" />
               </View>
               <View style={styles.featureContent}>
-                <Text style={styles.cardTitle}>Call Child</Text>
-                <Text style={styles.cardSubtitle}>Start an audio call with your linked child</Text>
+                <Text style={styles.cardTitle}>Call</Text>
+                <Text style={styles.cardSubtitle}>Start an audio call with a linked user</Text>
               </View>
               <Ionicons name="chevron-forward" size={24} color={'#AAAAAA'} />
             </View>
@@ -296,6 +321,32 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: colors.textSecondary,
     marginTop: 2,
+  },
+  headerRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  notifButton: {
+    padding: 4,
+    position: 'relative',
+  },
+  badge: {
+    position: 'absolute',
+    top: -4,
+    right: -4,
+    backgroundColor: colors.emergency,
+    borderRadius: 10,
+    minWidth: 18,
+    height: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 4,
+  },
+  badgeText: {
+    color: '#FFFFFF',
+    fontSize: 10,
+    fontWeight: 'bold',
   },
   profileButton: {
     padding: 4,

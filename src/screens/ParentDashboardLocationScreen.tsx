@@ -41,7 +41,7 @@ export function ParentDashboardLocationScreen({ navigation, route }: Props) {
   const { dependentId = '', dependentName = 'Unknown' } = route.params ?? {};
   const [isLoadingZones, setIsLoadingZones] = useState(false);
 
-  // Keep a stable local copy of zones – only reset when switching to a DIFFERENT child
+  // Keep a stable local copy of zones – only reset when switching to a DIFFERENT user
   // so returning from CreateSafeZone never flashes an empty list
   const [displayedZones, setDisplayedZones] = useState<NormalizedSafeZone[]>([]);
   const lastFetchedIdRef = useRef<string>('');
@@ -54,29 +54,29 @@ export function ParentDashboardLocationScreen({ navigation, route }: Props) {
     fetchSafeZones,
   } = useSafety();
 
-  // Sync displayedZones from context – filter to this child only
+  // Sync displayedZones from context – filter to this user only
   useEffect(() => {
-    const childZones = safeZones.filter(
+    const userZones = safeZones.filter(
       (z) => !z.dependentId || String(z.dependentId) === String(dependentId),
     );
-    setDisplayedZones(childZones);
+    setDisplayedZones(userZones);
   }, [safeZones, dependentId]);
 
-  // Fetch safe zones for this child on focus
+  // Fetch safe zones for this user on focus
   useFocusEffect(
     useCallback(() => {
       let cancelled = false;
       const now = Date.now();
-      const sameChild = lastFetchedIdRef.current === dependentId;
+      const sameUser = lastFetchedIdRef.current === dependentId;
       const fresh = now - lastFetchTimeRef.current < FETCH_THROTTLE_MS;
 
-      // Clear stale zones immediately only when switching to a different child
-      if (!sameChild) {
+      // Clear stale zones immediately only when switching to a different user
+      if (!sameUser) {
         setDisplayedZones([]);
       }
 
-      // Skip full re-fetch if we just fetched this child recently
-      if (sameChild && fresh) return;
+      // Skip full re-fetch if we just fetched this user recently
+      if (sameUser && fresh) return;
 
       lastFetchedIdRef.current = dependentId;
       lastFetchTimeRef.current = now;

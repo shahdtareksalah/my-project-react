@@ -18,6 +18,7 @@ interface ButtonProps {
   icon?: React.ReactNode;
   loading?: boolean;
   disabled?: boolean;
+  accessibilityLabel?: string;
 }
 
 export function Button({
@@ -29,6 +30,7 @@ export function Button({
   icon,
   loading,
   disabled,
+  accessibilityLabel,
 }: ButtonProps) {
   const variantStyles = {
     primary: styles.primary,
@@ -52,6 +54,9 @@ export function Button({
       onPress={onPress}
       disabled={isDisabled}
       activeOpacity={0.8}
+      accessibilityLabel={accessibilityLabel || title}
+      accessibilityRole="button"
+      accessibilityState={{ disabled: isDisabled }}
     >
       {Boolean(loading) ? (
         <ActivityIndicator color={variant === 'outline' || variant === 'ghost' ? colors.primary : colors.white} />

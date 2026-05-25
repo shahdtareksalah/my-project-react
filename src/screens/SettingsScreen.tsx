@@ -96,9 +96,9 @@ export function SettingsScreen({ navigation }: Props) {
           />
           <SettingsRow
             icon={<Ionicons name="people-outline" size={22} color={colors.primary} />}
-            title="Parents Dashboard"
-            subtitle="Monitor children and activities"
-            onPress={() => navigation.navigate('ParentDashboard')}
+            title="Dashboard"
+            subtitle="Monitor users and activities"
+            onPress={() => navigation.navigate('Dashboard')}
           />
         </Card>
 

@@ -3,7 +3,7 @@ export type Coordinate = {
   longitude: number;
 };
 
-export type NormalizedLinkedChild = {
+export type NormalizedLinkedUser = {
   id: string;
   displayName: string;
   subtitle: string;
@@ -45,7 +45,7 @@ export function normalizeCoordinate(input: unknown): Coordinate | null {
   return { latitude: lat, longitude: lng };
 }
 
-export function normalizeLinkedChildren(input: unknown): NormalizedLinkedChild[] {
+export function normalizeLinkedChildren(input: unknown): NormalizedLinkedUser[] {
   if (!Array.isArray(input)) return [];
   return input
     .map((item) => {
@@ -63,17 +63,17 @@ export function normalizeLinkedChildren(input: unknown): NormalizedLinkedChild[]
 
       return {
         id,
-        displayName: name || email || `Child ${id}`,
-        subtitle: `${email || `ID: ${id}`} - ${role || 'child'} - Tracking ${
+        displayName: name || email || `User ${id}`,
+        subtitle: `${email || `ID: ${id}`} - ${role || 'user'} - Tracking ${
           trackingEnabled ? 'ON' : 'OFF'
         }`,
         email,
         role,
         trackingEnabled,
         coordinate,
-      } satisfies NormalizedLinkedChild;
+      } satisfies NormalizedLinkedUser;
     })
-    .filter((item): item is NormalizedLinkedChild => Boolean(item));
+    .filter((item): item is NormalizedLinkedUser => Boolean(item));
 }
 
 export function normalizeSafeZones(input: unknown): NormalizedSafeZone[] {

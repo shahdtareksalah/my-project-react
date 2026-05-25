@@ -1,28 +1,36 @@
 import React from 'react';
-import { View, Text, TextInput, StyleSheet, ViewStyle } from 'react-native';
+import { View, Text, TextInput, StyleSheet, ViewStyle, TextInputProps } from 'react-native';
 import { colors } from '../theme/colors';
 
-interface InputProps {
+interface InputProps extends Pick<TextInputProps, 'autoCapitalize' | 'autoCorrect' | 'editable'> {
   label: string;
   value: string;
   onChangeText: (text: string) => void;
   placeholder?: string;
   icon?: React.ReactNode;
+  rightIcon?: React.ReactNode;
   secureTextEntry?: boolean;
   style?: ViewStyle;
   keyboardType?: 'default' | 'email-address' | 'phone-pad' | 'numeric';
 }
 
-export function Input({
-  label,
-  value,
-  onChangeText,
-  placeholder,
-  icon,
-  secureTextEntry,
-  style,
-  keyboardType = 'default',
-}: InputProps) {
+export const Input = React.forwardRef<TextInput, InputProps>(function Input(
+  {
+    label,
+    value,
+    onChangeText,
+    placeholder,
+    icon,
+    rightIcon,
+    secureTextEntry,
+    style,
+    keyboardType = 'default',
+    autoCapitalize,
+    autoCorrect,
+    editable,
+  },
+  ref,
+) {
   return (
     <View style={[styles.container, style]}>
       {(label || icon) && (
@@ -31,18 +39,25 @@ export function Input({
           {label ? <Text style={styles.label}>{label}</Text> : null}
         </View>
       )}
-      <TextInput
-        style={styles.input}
-        value={value}
-        onChangeText={onChangeText}
-        placeholder={placeholder}
-        placeholderTextColor={colors.textLight}
-        secureTextEntry={secureTextEntry === true}
-        keyboardType={keyboardType}
-      />
+      <View style={[styles.inputRow, editable === false && styles.inputDisabled]}>
+        <TextInput
+          ref={ref}
+          style={styles.input}
+          value={value}
+          onChangeText={onChangeText}
+          placeholder={placeholder}
+          placeholderTextColor={colors.textLight}
+          secureTextEntry={secureTextEntry === true}
+          keyboardType={keyboardType}
+          autoCapitalize={autoCapitalize}
+          autoCorrect={autoCorrect}
+          editable={editable}
+        />
+        {rightIcon && <View style={styles.rightIconWrapper}>{rightIcon}</View>}
+      </View>
     </View>
   );
-}
+});
 
 const styles = StyleSheet.create({
   container: {
@@ -62,12 +77,25 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: colors.textPrimary,
   },
-  input: {
+  inputRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
     backgroundColor: colors.inputBg,
     borderRadius: 12,
+  },
+  input: {
+    flex: 1,
     paddingHorizontal: 16,
     paddingVertical: 14,
     fontSize: 16,
     color: colors.textPrimary,
+  },
+  rightIconWrapper: {
+    paddingRight: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  inputDisabled: {
+    opacity: 0.6,
   },
 });

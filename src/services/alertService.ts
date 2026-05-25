@@ -51,26 +51,12 @@ export async function triggerEmergencyAlert({
     trigger: null,
   });
 
-  let role = null;
-  try {
-    const profileString = await AsyncStorage.getItem('user_profile');
-    if (profileString) {
-      const userProfile = JSON.parse(profileString);
-      role = userProfile.role || null;
-    }
-  } catch (err) {
-    console.warn('Could not fetch user_profile', err);
-  }
-
-  if (role === 'parent') {
-    throw new Error('SOS Action is not available for parents.');
-  }
 
   const { access } = await getStoredTokens();
 
-  // Pre-flight Parent Verification
+  // Pre-flight Verification
   try {
-    const parentCheck = await fetch(`${API_BASE_URL}/users/me/parents/`, {
+    const meCheck = await fetch(`${API_BASE_URL}/users/me/`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
@@ -78,21 +64,36 @@ export async function triggerEmergencyAlert({
       },
     });
 
-    if (parentCheck.ok) {
-      const parentData = await parentCheck.json();
+    if (meCheck.ok) {
+      const meData = await meCheck.json();
+      const linkedUsers = [
+        ...(meData.linked_parents ?? []),
+        ...(meData.linked_dependents ?? [])
+      ];
+      if (linkedUsers.length === 0) {
+        Alert.alert(
+          'Profile Not Linked',
+          'You are not linked to another account. Cannot send SOS.'
+        );
+        throw new Error('Cannot send SOS: No linked users.');
+      }
+    }
+
+    if (meCheck.ok) {
+      const parentData = await meCheck.json();
       if (Array.isArray(parentData) && parentData.length === 0) {
         Alert.alert(
           'Profile Not Linked',
-          'You are not linked to a parent account. Cannot send SOS.'
+          'You are not linked to another account. Cannot send SOS.'
         );
-        throw new Error('Cannot send SOS: No parents linked.');
+        throw new Error('Cannot send SOS: No users linked.');
       }
     }
   } catch (error) {
-    if (error instanceof Error && error.message.includes('No parents linked')) {
+    if (error instanceof Error && error.message.includes('No users linked')) {
       throw error;
     }
-    console.warn('Parent verification check failed', error);
+    console.warn('Verification check failed', error);
   }
 
 
@@ -102,6 +103,7 @@ export async function triggerEmergencyAlert({
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        'ngrok-skip-browser-warning': 'true',
         'Authorization': `Bearer ${access}`,
       },
       body: JSON.stringify({

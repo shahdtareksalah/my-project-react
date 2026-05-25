@@ -10,15 +10,16 @@ import { ChildLocationScreen } from '../screens/ChildLocationScreen';
 import { EmergencyScreen } from '../screens/EmergencyScreen';
 import { VideoAssistanceScreen } from '../screens/VideoAssistanceScreen';
 import { VideoScreen } from '../screens/VideoScreen';
-import { ParentDashboardScreen } from '../screens/ParentDashboardScreen';
+import { DashboardScreen } from '../screens/ParentDashboardScreen';
 import { ParentDashboardLocationScreen } from '../screens/ParentDashboardLocationScreen';
 import { AdminDashboardScreen } from '../screens/AdminDashboardScreen';
 import { SettingsScreen } from '../screens/SettingsScreen';
 import { OCRScreen } from '../screens/OCRScreen';
-import { LinkChildScreen } from '../screens/LinkChildScreen';
+import { LinkUserScreen } from '../screens/LinkUserScreen';
 import { CreateSafeZoneScreen } from '../screens/CreateSafeZoneScreen';
 import { AlertHistoryScreen } from '../screens/AlertHistoryScreen';
 import { AudioCallScreen } from '../screens/AudioCallScreen';
+import { NotificationsScreen } from '../screens/NotificationsScreen';
 import { colors } from '../theme/colors';
 import { navigationRef } from './navigationRef';
 import type { AudioCallRouteParams } from '../types/call';
@@ -34,12 +35,13 @@ export type RootStackParamList = {
   Camera: undefined;
   CameraAssistance: undefined;
   OCR: { autoRead?: boolean } | undefined;
-  ParentDashboard: undefined;
+  Dashboard: undefined;
   ParentDashboardLocation: { dependentId: string; dependentName: string };
   AdminDashboard: undefined;
   Settings: undefined;
-  LinkChild: undefined;
+  LinkUser: undefined;
   AlertHistory: undefined;
+  Notifications: undefined;
   CreateSafeZone: {
     dependentId: string;
     dependentName?: string;
@@ -96,13 +98,13 @@ export function AppNavigator() {
           options={{ contentStyle: { backgroundColor: colors.primaryDark } }}
         />
         <Stack.Screen
-          name="ParentDashboard"
-          component={ParentDashboardScreen}
+          name="Dashboard"
+          component={DashboardScreen}
           options={{ contentStyle: { backgroundColor: colors.backgroundDark } }}
         />
         <Stack.Screen
-          name="LinkChild"
-          component={LinkChildScreen}
+          name="LinkUser"
+          component={LinkUserScreen}
           options={{ contentStyle: { backgroundColor: colors.backgroundDark } }}
         />
         <Stack.Screen
@@ -133,6 +135,11 @@ export function AppNavigator() {
         <Stack.Screen
           name="AudioCall"
           component={AudioCallScreen}
+          options={{ contentStyle: { backgroundColor: colors.backgroundDark } }}
+        />
+        <Stack.Screen
+          name="Notifications"
+          component={NotificationsScreen}
           options={{ contentStyle: { backgroundColor: colors.backgroundDark } }}
         />
       </Stack.Navigator>

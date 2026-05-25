@@ -28,7 +28,8 @@ export type AudioCallRouteParams = {
   token?: string;
   agoraAppId?: string;
   uid?: number;
-  childId?: string;
+  receiverId?: string;
+  childId?: string; // Kept for backward compatibility
   callerName?: string;
   isIncoming?: boolean;
 };

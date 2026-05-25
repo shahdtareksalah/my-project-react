@@ -23,9 +23,9 @@ function buildCallError(data: unknown, status: number) {
   return backendMessage;
 }
 
-export async function initiateAudioCall(childId: string): Promise<InitiateCallResponse> {
+export async function initiateAudioCall(receiverId: string): Promise<InitiateCallResponse> {
   const { response, data } = await apiPost('/emergency/initiate-call/', {
-    child_id: childId,
+    receiver_id: receiverId,
   });
 
   if (response.status !== 201) {

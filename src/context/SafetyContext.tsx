@@ -16,7 +16,7 @@ import {
   normalizeLinkedChildren,
   normalizeSafeZones,
   type Coordinate,
-  type NormalizedLinkedChild,
+  type NormalizedLinkedUser,
   type NormalizedSafeZone,
 } from '../utils/locationNormalizers';
 
@@ -25,19 +25,25 @@ const LOCATION_TASK_NAME = 'smartaid-background-location';
 type SafetyContextValue = {
   safeZone: SafeZone | null;
   safeZones: NormalizedSafeZone[];
-  linkedChildren: NormalizedLinkedChild[];
-  childLocation: Coordinate | null;
+  linkedUsers: NormalizedLinkedUser[];
+  linkedChildren: NormalizedLinkedUser[]; // Alias for backward compatibility
+  userLocation: Coordinate | null;
+  childLocation: Coordinate | null; // Alias for backward compatibility
   emergencyHistory: Array<Record<string, unknown>>;
   emergencyPhone: string;
   setEmergencyPhone: (phone: string) => Promise<void>;
   setSafeZoneFromCurrentLocation: (radiusMeters: number, name: string) => Promise<void>;
   fetchSafeZones: (childId?: string) => Promise<void>;
-  fetchLinkedChildren: (force?: boolean) => Promise<void>;
+  fetchLinkedUsers: (force?: boolean) => Promise<void>;
+  fetchLinkedChildren: (force?: boolean) => Promise<void>; // Alias
   deleteSafeZone: (zoneId: string) => Promise<void>;
   updateSafeZone: (zoneId: string, payload: Record<string, unknown>) => Promise<void>;
-  linkChild: (childIdentifier: string) => Promise<void>;
-  fetchChildLocation: (childId: string) => Promise<void>;
-  updateChildLocation: () => Promise<void>;
+  linkUser: (userIdentifier: string) => Promise<void>;
+  linkChild: (childIdentifier: string) => Promise<void>; // Alias
+  fetchUserLocation: (userId: string) => Promise<void>;
+  fetchChildLocation: (childId: string) => Promise<void>; // Alias
+  updateUserLocation: () => Promise<void>;
+  updateChildLocation: () => Promise<void>; // Alias
   fetchEmergencyHistory: () => Promise<void>;
   requestLocationPermissions: () => Promise<boolean>;
   sendEmergency: (trigger: EmergencyTrigger) => Promise<void>;
@@ -115,8 +121,8 @@ export function SafetyProvider({ children }: { children: React.ReactNode }) {
   const lastFetchTime = useRef(0);
   const [safeZone, setSafeZone] = useState<SafeZone | null>(null);
   const [safeZones, setSafeZones] = useState<NormalizedSafeZone[]>([]);
-  const [linkedChildren, setLinkedChildren] = useState<NormalizedLinkedChild[]>([]);
-  const [childLocation, setChildLocation] = useState<Coordinate | null>(null);
+  const [linkedUsers, setLinkedUsers] = useState<NormalizedLinkedUser[]>([]);
+  const [userLocation, setUserLocation] = useState<Coordinate | null>(null);
   const [emergencyHistory, setEmergencyHistory] = useState<Array<Record<string, unknown>>>([]);
   const [emergencyPhone, setEmergencyPhoneState] = useState('');
 
@@ -144,7 +150,7 @@ export function SafetyProvider({ children }: { children: React.ReactNode }) {
       await Promise.allSettled([
         fetchSafeZonesInternal(),
         fetchEmergencyHistoryInternal(),
-        fetchLinkedChildrenInternal(),
+        fetchLinkedUsersInternal(),
       ]);
     })();
   }, []);
@@ -168,7 +174,7 @@ export function SafetyProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const fetchLinkedChildrenInternal = async (force = false) => {
+  const fetchLinkedUsersInternal = async (force = false) => {
     const now = Date.now();
     if (!force && now - lastFetchTime.current < 30000) {
       return; // Use cached data if fetched within the last 30 seconds
@@ -176,14 +182,14 @@ export function SafetyProvider({ children }: { children: React.ReactNode }) {
 
     const { response, data } = await apiGet('/locations/linked-children/');
     if (!response.ok || !Array.isArray(data)) {
-      setLinkedChildren([]);
+      setLinkedUsers([]);
       return;
     }
 
     const normalized = normalizeLinkedChildren(data);
 
     // Set children immediately so the UI isn't blank while we fetch locations
-    setLinkedChildren(normalized);
+    setLinkedUsers(normalized);
 
     // Now batch-fetch the last location for every child in parallel using Promise.all
     const locationResults = await Promise.all(
@@ -202,7 +208,7 @@ export function SafetyProvider({ children }: { children: React.ReactNode }) {
     );
 
     // Merge freshly-fetched coordinates into children without clearing existing ones
-    setLinkedChildren((prev) => {
+    setLinkedUsers((prev) => {
       const coordMap = new Map<string, Coordinate | null>();
       for (const result of locationResults) {
         if (result.coordinate) {
@@ -265,9 +271,10 @@ export function SafetyProvider({ children }: { children: React.ReactNode }) {
     await fetchSafeZonesInternal(childId);
   };
 
-  const fetchLinkedChildren = async (force = false) => {
-    await fetchLinkedChildrenInternal(force);
+  const fetchLinkedUsers = async (force = false) => {
+    await fetchLinkedUsersInternal(force);
   };
+  const fetchLinkedChildren = fetchLinkedUsers; // Alias
 
   const deleteSafeZone = async (zoneId: string) => {
     const { response } = await apiDelete(`/locations/safezone/${zoneId}/`);
@@ -283,6 +290,7 @@ export function SafetyProvider({ children }: { children: React.ReactNode }) {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
+        'ngrok-skip-browser-warning': 'true',
         ...(access ? { Authorization: `Bearer ${access}` } : {}),
       },
       body: JSON.stringify(payload),
@@ -293,37 +301,39 @@ export function SafetyProvider({ children }: { children: React.ReactNode }) {
     await fetchSafeZonesInternal();
   };
 
-  const linkChild = async (childIdentifier: string) => {
-    const { response, data } = await apiPost('/locations/link-child/', {
-      dependent_email: childIdentifier,
+  const linkUser = async (userIdentifier: string) => {
+    const { response, data } = await apiPost('/users/link/', {
+      email: userIdentifier,
     });
     if (!response.ok) {
       const message =
         (data && typeof data === 'object'
           ? ((data as { message?: string; detail?: string }).message ||
             (data as { detail?: string }).detail)
-          : null) || 'Failed to link child';
+          : null) || 'Failed to link user';
       throw new Error(String(message));
     }
   };
+  const linkChild = linkUser; // Alias
 
-  const fetchChildLocation = async (childId: string) => {
-    const { response, data } = await apiGet(`/locations/location/child/${childId}/`);
+  const fetchUserLocation = async (userId: string) => {
+    const { response, data } = await apiGet(`/locations/location/child/${userId}/`);
     if (!response.ok) {
-      throw new Error('Failed to fetch child location');
+      throw new Error('Failed to fetch user location');
     }
     const coordinate = normalizeChildLocation(data);
-    setChildLocation(coordinate);
-    setLinkedChildren((prev) =>
-      prev.map((child) =>
-        String(child.id) === String(childId)
-          ? { ...child, coordinate: coordinate ?? child.coordinate }
-          : child,
+    setUserLocation(coordinate);
+    setLinkedUsers((prev) =>
+      prev.map((user) =>
+        String(user.id) === String(userId)
+          ? { ...user, coordinate: coordinate ?? user.coordinate }
+          : user,
       ),
     );
   };
+  const fetchChildLocation = fetchUserLocation; // Alias
 
-  const updateChildLocation = async () => {
+  const updateUserLocation = async () => {
     const current = await Location.getCurrentPositionAsync({
       accuracy: Location.Accuracy.Balanced,
     });
@@ -336,10 +346,11 @@ export function SafetyProvider({ children }: { children: React.ReactNode }) {
         (data && typeof data === 'object'
           ? ((data as { message?: string; detail?: string }).message ||
             (data as { detail?: string }).detail)
-          : null) || 'Failed to update child location';
+          : null) || 'Failed to update user location';
       throw new Error(String(message));
     }
   };
+  const updateChildLocation = updateUserLocation; // Alias
 
   const fetchEmergencyHistory = async () => {
     await fetchEmergencyHistoryInternal();
@@ -357,24 +368,30 @@ export function SafetyProvider({ children }: { children: React.ReactNode }) {
     () => ({
       safeZone,
       safeZones,
-      linkedChildren,
-      childLocation,
+      linkedUsers,
+      linkedChildren: linkedUsers,
+      userLocation,
+      childLocation: userLocation,
       emergencyHistory,
       emergencyPhone,
       setEmergencyPhone,
       setSafeZoneFromCurrentLocation,
       fetchSafeZones,
+      fetchLinkedUsers,
       fetchLinkedChildren,
       deleteSafeZone,
       updateSafeZone,
+      linkUser,
       linkChild,
+      fetchUserLocation,
       fetchChildLocation,
+      updateUserLocation,
       updateChildLocation,
       fetchEmergencyHistory,
       requestLocationPermissions,
       sendEmergency,
     }),
-    [safeZone, safeZones, linkedChildren, childLocation, emergencyHistory, emergencyPhone]
+    [safeZone, safeZones, linkedUsers, userLocation, emergencyHistory, emergencyPhone]
   );
 
   return <SafetyContext.Provider value={value}>{children}</SafetyContext.Provider>;
